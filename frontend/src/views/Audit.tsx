@@ -3,7 +3,7 @@ import { ChevronRight, Copy, Inbox, RefreshCw, Search, X } from "lucide-react";
 import { api } from "../api";
 import type { AuditEvent } from "../types";
 import { EventPanels } from "../components/EventPanels";
-import { Button, Card, DecisionBadge, EmptyState, ErrorState, Mono, SeverityBadge, Skeleton, SourceBadge, formatTime, humanize, useAsync, PageHeader } from "../components/ui";
+import { Button, Card, DecisionBadge, EmptyState, ErrorState, Mono, SeverityBadge, Skeleton, cx, formatTime, humanize, useAsync, PageHeader } from "../components/ui";
 
 const PAGE = 25;
 const FILTER_KEYS = ["decision", "severity", "scenario", "q"] as const;
@@ -82,12 +82,17 @@ export default function Audit() {
           </EmptyState>
         )}
         {items.length > 0 && (
-          <ul className="-m-4 divide-y divide-ink-700">
+          <div className="-m-5">
+          <div className={cx(ROW_GRID, "hidden border-b border-ink-700 px-5 py-3 text-xs text-fg-faint md:grid")} aria-hidden>
+            <span>Time</span><span>Tool</span><span>Scenario</span><span>Analysis</span><span>Severity</span><span>Decision</span><span />
+          </div>
+          <ul className="divide-y divide-ink-700/70">
             {items.map((e) => (
               <Row key={e.event_id} event={e} active={open === e.event_id}
                 onOpen={(el) => { opener.current = el; setOpen(e.event_id); }} />
             ))}
           </ul>
+          </div>
         )}
       </Card>
 
@@ -106,23 +111,34 @@ export default function Audit() {
   );
 }
 
+const ROW_GRID = "md:grid md:grid-cols-[150px_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_110px_130px_16px] md:items-center md:gap-4";
+
+const ANALYSIS_TEXT: Record<string, { label: string; dot: string }> = {
+  ok: { label: "Live Gemma", dot: "bg-good" },
+  fixture: { label: "Test fixture", dot: "bg-accent" },
+  not_configured: { label: "Not configured", dot: "bg-warn" },
+  timeout: { label: "Timed out", dot: "bg-serious" },
+  error: { label: "Model error", dot: "bg-bad" },
+  invalid_response: { label: "Invalid output", dot: "bg-bad" },
+};
+
 function Row({ event: e, active, onOpen }: { event: AuditEvent; active: boolean; onOpen: (el: HTMLElement) => void }) {
+  const a = ANALYSIS_TEXT[e.analysis.status] ?? { label: humanize(e.analysis.status), dot: "bg-fg-faint" };
   return (
     <li>
-      <button onClick={(ev) => onOpen(ev.currentTarget)} aria-haspopup="dialog"
-        className={`flex w-full flex-col gap-2 px-4 py-3 text-left text-sm hover:bg-ink-850 md:flex-row md:items-center md:gap-3 ${active ? "bg-ink-850" : ""}`}>
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-1">
-          <span className="whitespace-nowrap text-fg-muted">{formatTime(e.created_at)}</span>
-          <Mono className="text-fg">{e.request.tool_call.name}</Mono>
-          <span className="capitalize text-fg-muted">{e.scenario_id ? humanize(e.scenario_id) : "custom"}</span>
-          <Mono className="hidden text-fg-faint lg:inline">{e.event_id}</Mono>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <SourceBadge analysis={e.analysis} />
-          <SeverityBadge severity={e.analysis.assessment?.severity} />
-          <DecisionBadge decision={e.policy.decision} />
-          <ChevronRight size={16} className="hidden text-fg-faint md:block" aria-hidden />
-        </div>
+      <button onClick={(ev) => onOpen(ev.currentTarget)} aria-haspopup="dialog" aria-label={`Open event ${e.event_id}`}
+        className={cx(ROW_GRID, "flex w-full flex-col gap-2 px-5 py-3.5 text-left text-sm transition-colors hover:bg-ink-850", active && "bg-ink-850")}>
+        <span className="whitespace-nowrap text-fg-muted">{formatTime(e.created_at)}</span>
+        <Mono className="truncate text-fg">{e.request.tool_call.name}</Mono>
+        <span className="truncate capitalize text-fg-muted">{e.scenario_id ? humanize(e.scenario_id) : "Custom"}</span>
+        <span className="flex items-center gap-2 text-fg-muted" title={e.analysis.error ?? undefined}>
+          <span className={cx("h-1.5 w-1.5 shrink-0 rounded-full", a.dot)} aria-hidden />{a.label}
+        </span>
+        <span className="flex flex-wrap items-center gap-2 md:contents">
+          <span><SeverityBadge severity={e.analysis.assessment?.severity} /></span>
+          <span><DecisionBadge decision={e.policy.decision} /></span>
+        </span>
+        <ChevronRight size={16} className="hidden text-fg-faint md:block" aria-hidden />
       </button>
     </li>
   );
@@ -185,8 +201,8 @@ function EventDrawer({ eventId, onClose }: { eventId: string; onClose: () => voi
                 <span className="capitalize">Scenario: {e.scenario_id ? humanize(e.scenario_id) : "custom"}</span>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <div><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-fg-faint">Task</div><p className="text-sm">{e.request.task}</p></div>
-                <div><div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-fg-faint">Untrusted document</div>
+                <div><div className="mb-1.5 text-[13px] font-medium text-fg-muted">Task</div><p className="text-sm">{e.request.task}</p></div>
+                <div><div className="mb-1.5 text-[13px] font-medium text-fg-muted">Untrusted document</div>
                   <pre className="scroll-thin max-h-40 overflow-auto whitespace-pre-wrap break-words rounded border border-ink-700 bg-ink-950 p-2 font-mono text-[12px] text-fg-muted">{e.request.document || "(empty)"}</pre></div>
               </div>
               <EventPanels event={e} stacked />

@@ -61,7 +61,7 @@ export function ThreatPanel({ event }: { event: AuditEvent }) {
 
 const OUTCOME: Record<CheckOutcome, { icon: JSX.Element; cls: string; label: string }> = {
   pass: { icon: <Check size={14} />, cls: "text-good", label: "Pass" },
-  fail: { icon: <X size={14} />, cls: "text-[#ff6b70]", label: "Fail" },
+  fail: { icon: <X size={14} />, cls: "text-bad-fg", label: "Fail" },
   approval_required: { icon: <Hand size={14} />, cls: "text-warn", label: "Approval" },
   not_applicable: { icon: <MinusCircle size={14} />, cls: "text-fg-faint", label: "N/A" },
   skipped: { icon: <CircleSlash size={14} />, cls: "text-fg-faint", label: "Skipped" },

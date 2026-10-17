@@ -52,36 +52,40 @@ export function usePolling(cb: () => unknown, ms: number, enabled = true) {
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cx("animate-pulse rounded bg-ink-800", className)} />;
+  return <div aria-hidden className={cx("animate-pulse rounded-card bg-ink-900", className)} />;
 }
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-fg-muted">{subtitle}</p>}
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight">{title}</h1>
+        {subtitle && <p className="mt-1.5 text-sm text-fg-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
 
-export function Card({ title, icon, actions, children, className }: {
-  title?: ReactNode; icon?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string;
+export function Card({ title, subtitle, icon, actions, children, className, bodyClassName }: {
+  title?: ReactNode; subtitle?: ReactNode; icon?: ReactNode; actions?: ReactNode; children: ReactNode;
+  className?: string; bodyClassName?: string;
 }) {
   return (
-    <section className={cx("min-w-0 rounded-lg border border-ink-700 bg-ink-900", className)}>
+    <section className={cx("min-w-0 rounded-card border border-ink-700 bg-ink-900", className)}>
       {title && (
-        <header className="flex items-center justify-between gap-3 border-b border-ink-700 px-4 py-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-fg">
-            {icon && <span className="text-fg-muted">{icon}</span>}
-            {title}
-          </h2>
-          {actions}
+        <header className="flex items-start justify-between gap-3 px-5 pt-5">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-[15px] font-semibold text-fg">
+              {icon && <span className="text-fg-muted">{icon}</span>}
+              {title}
+            </h2>
+            {subtitle && <p className="mt-1 text-[13px] text-fg-muted">{subtitle}</p>}
+          </div>
+          {actions && <div className="shrink-0">{actions}</div>}
         </header>
       )}
-      <div className="p-4">{children}</div>
+      <div className={cx("p-5", bodyClassName)}>{children}</div>
     </section>
   );
 }
@@ -90,15 +94,15 @@ export function Badge({ tone = "neutral", icon, children, title }: {
   tone?: "neutral" | "good" | "warn" | "bad" | "accent" | "serious"; icon?: ReactNode; children: ReactNode; title?: string;
 }) {
   const tones = {
-    neutral: "border-ink-600 bg-ink-800 text-fg-muted",
-    good: "border-good/40 bg-good/10 text-good",
-    warn: "border-warn/40 bg-warn/10 text-warn",
-    serious: "border-[#ec835a]/40 bg-[#ec835a]/10 text-[#ec835a]",
-    bad: "border-bad/40 bg-bad/10 text-[#ff6b70]",
-    accent: "border-accent/40 bg-accent/10 text-accent",
+    neutral: "bg-ink-800 text-fg-muted",
+    good: "bg-good/[0.12] text-good",
+    warn: "bg-warn/[0.12] text-warn",
+    serious: "bg-serious/[0.12] text-serious",
+    bad: "bg-bad/[0.14] text-bad-fg",
+    accent: "bg-accent/[0.16] text-accent-soft",
   };
   return (
-    <span title={title} className={cx("inline-flex items-center gap-1 whitespace-nowrap rounded border px-1.5 py-0.5 text-xs font-medium", tones[tone])}>
+    <span title={title} className={cx("inline-flex items-center gap-1 whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium", tones[tone])}>
       {icon}
       {children}
     </span>
@@ -143,11 +147,11 @@ export function Spinner({ label }: { label?: string }) {
 
 export function ErrorState({ message, onRetry, retryLabel = "Retry" }: { message: string; onRetry?: () => void; retryLabel?: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-md border border-bad/40 bg-bad/10 p-3 text-sm text-[#ffb3b5]" role="alert">
+    <div className="flex items-start gap-3 rounded-xl border border-bad/30 bg-bad/[0.08] p-3.5 text-sm text-bad-soft" role="alert">
       <AlertTriangle size={16} className="mt-0.5 shrink-0" />
       <div className="min-w-0 flex-1 break-words">{message}</div>
       {onRetry && (
-        <button onClick={onRetry} className="shrink-0 rounded border border-bad/40 px-2 py-0.5 text-xs font-medium hover:bg-bad/20">
+        <button onClick={onRetry} className="shrink-0 rounded-lg border border-bad/40 px-2.5 py-1 text-xs font-medium hover:bg-bad/20">
           {retryLabel}
         </button>
       )}
@@ -157,9 +161,9 @@ export function ErrorState({ message, onRetry, retryLabel = "Retry" }: { message
 
 export function EmptyState({ icon, title, children }: { icon: ReactNode; title: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-      <div className="text-fg-faint">{icon}</div>
-      <p className="text-sm font-medium text-fg">{title}</p>
+    <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+      <div className="mb-1 flex h-12 w-12 items-center justify-center rounded-xl border border-ink-700 bg-ink-850 text-fg-faint">{icon}</div>
+      <p className="text-[15px] font-medium text-fg">{title}</p>
       {children && <div className="max-w-sm text-sm text-fg-muted">{children}</div>}
     </div>
   );
@@ -169,15 +173,15 @@ export function Button({ variant = "secondary", className, ...props }: React.But
   variant?: "primary" | "secondary" | "ghost";
 }) {
   const v = {
-    primary: "bg-accent text-ink-950 hover:bg-[#7aaff5] disabled:bg-ink-700 disabled:text-fg-faint",
-    secondary: "border border-ink-600 bg-ink-800 text-fg hover:bg-ink-700 disabled:text-fg-faint",
+    primary: "bg-accent text-white hover:bg-accent-hover disabled:bg-ink-700 disabled:text-fg-faint",
+    secondary: "border border-ink-600 bg-transparent text-fg hover:bg-ink-800 disabled:text-fg-faint",
     ghost: "text-fg-muted hover:bg-ink-800 hover:text-fg",
   }[variant];
-  return <button {...props} className={cx("inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed", v, className)} />;
+  return <button {...props} className={cx("inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed", v, className)} />;
 }
 
 export function Label({ children }: { children: ReactNode }) {
-  return <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-fg-faint">{children}</div>;
+  return <div className="mb-1.5 text-[13px] font-medium text-fg-muted">{children}</div>;
 }
 
 export function Mono({ children, className }: { children: ReactNode; className?: string }) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Ban, CheckCircle2, Crosshair, FlaskConical, Hand, Inbox, PenLine, Play, Radio, RotateCcw } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, Crosshair, FlaskConical, Hand, Inbox, PenLine, Play, RotateCcw } from "lucide-react";
 import { api } from "../api";
 import type { AuditEvent, Health, JsonSchema, Scenario, ToolInfo } from "../types";
 import { EventPanels } from "../components/EventPanels";
@@ -131,23 +131,21 @@ export default function Simulator({ health }: { health: Health | null }) {
           <div className="space-y-2" role="listbox" aria-label="Scenarios">
             {scenarios.data.map((s) => (
               <button key={s.id} role="option" aria-selected={mode === "scenario" && selected?.id === s.id} onClick={() => load(s)}
-                className={cx("w-full rounded-lg border p-3 text-left transition-colors",
+                className={cx("w-full rounded-xl border p-4 text-left transition-colors",
                   mode === "scenario" && selected?.id === s.id ? "border-accent/60 bg-ink-800" : "border-ink-700 bg-ink-900 hover:border-ink-600")}>
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-sm font-semibold">
                     <span className="flex h-5 w-5 items-center justify-center rounded bg-ink-700 font-mono text-[11px]">{s.label}</span>
                     {s.title}
                   </span>
-                  {s.analysis === "fixture"
-                    ? <Badge tone="accent" icon={<FlaskConical size={11} />}>Fixture</Badge>
-                    : <Badge icon={<Radio size={11} />}>Live</Badge>}
+                  {s.analysis === "fixture" && <Badge tone="accent" icon={<FlaskConical size={11} />}>Fixture</Badge>}
                 </div>
                 <p className="mt-1.5 text-xs leading-relaxed text-fg-muted">{s.summary}</p>
                 <p className="mt-2 text-[11px] text-fg-faint">Expected: <span className="text-fg-muted">{DECISION_LABEL[s.expected]}</span></p>
               </button>
             ))}
             <button role="option" aria-selected={mode === "custom"} onClick={() => startCustom(tools.data?.[0])}
-              className={cx("w-full rounded-lg border border-dashed p-3 text-left transition-colors",
+              className={cx("w-full rounded-xl border border-dashed p-4 text-left transition-colors",
                 mode === "custom" ? "border-accent/60 bg-ink-800" : "border-ink-600 bg-ink-900 hover:border-fg-faint")}>
               <span className="flex items-center gap-2 text-sm font-semibold"><PenLine size={14} className="text-fg-muted" /> Custom request</span>
               <p className="mt-1.5 text-xs leading-relaxed text-fg-muted">Write your own task, untrusted document and tool call. Analyzed by the live model.</p>
@@ -186,7 +184,7 @@ export default function Simulator({ health }: { health: Health | null }) {
                       <ToolHint tools={tools.data} name={toolName} error={tools.error} />
                     </div>
                     <label className="flex items-start gap-2 text-sm">
-                      <input type="checkbox" checked={approval} onChange={(e) => setApproval(e.target.checked)} className="mt-0.5 accent-[#5b9cf2]" />
+                      <input type="checkbox" checked={approval} onChange={(e) => setApproval(e.target.checked)} className="mt-0.5 accent-accent" />
                       <span>Human approval supplied<span className="block text-xs text-fg-faint">Comes from the operator, never from the model or document.</span></span>
                     </label>
                   </div>
@@ -237,7 +235,7 @@ function Verdict({ event }: { event: AuditEvent }) {
   const d = event.policy.decision;
   const style = {
     allow: { cls: "border-good/50 bg-good/10 text-good", icon: <CheckCircle2 size={28} />, word: "ALLOW" },
-    block: { cls: "border-bad/50 bg-bad/10 text-[#ff6b70]", icon: <Ban size={28} />, word: "BLOCK" },
+    block: { cls: "border-bad/50 bg-bad/10 text-bad-fg", icon: <Ban size={28} />, word: "BLOCK" },
     needs_approval: { cls: "border-warn/50 bg-warn/10 text-warn", icon: <Hand size={28} />, word: "NEEDS APPROVAL" },
   }[d];
   return (

@@ -112,16 +112,15 @@ function PolicyCard({ policy, tools, index, onPatch }: { policy: Policy; tools: 
   const set = (k: string, v: unknown) => setConfig({ ...config, [k]: v });
 
   return (
-    <section className={cx("rounded-lg border bg-ink-900", policy.enabled ? "border-ink-700" : "border-dashed border-ink-600 opacity-80")}
+    <section className={cx("rounded-card border bg-ink-900", policy.enabled ? "border-ink-700" : "border-dashed border-ink-600")}
       aria-labelledby={`policy-${policy.id}`}>
-      <div className="flex items-start gap-3 p-4 sm:gap-4">
-        <span className="mt-0.5 hidden h-6 w-6 shrink-0 items-center justify-center rounded bg-ink-800 font-mono text-xs text-fg-muted sm:flex">{index}</span>
+      <div className="flex items-start gap-4 p-5">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 id={`policy-${policy.id}`} className="text-sm font-semibold">{policy.name}</h3>
-            <Mono className="break-all text-fg-faint">{policy.id}</Mono>
-            {policy.locked && <Badge icon={<Lock size={11} />} title="Core security control; cannot be disabled">Locked</Badge>}
-            {policy.enabled ? <Badge tone="good">Enforced</Badge> : <Badge tone="warn">Disabled</Badge>}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h3 id={`policy-${policy.id}`} className="text-[15px] font-semibold" title={`Policy ID: ${policy.id} · evaluated #${index}`}>{policy.name}</h3>
+            {policy.locked
+              ? <span className="flex items-center gap-1 text-xs text-fg-faint" title="Core security control; cannot be disabled"><Lock size={12} aria-hidden /> Always enforced</span>
+              : !policy.enabled && <Badge tone="warn">Disabled</Badge>}
             {pending && <span className="flex items-center gap-1 text-[11px] text-fg-faint" role="status"><Loader2 size={12} className="animate-spin" /> Saving…</span>}
           </div>
           <p className="mt-1 text-sm text-fg-muted">{policy.description}</p>
@@ -150,7 +149,7 @@ function ConfigEditor({ policy, config, set, tools }: { policy: Policy; config: 
           <div className="grid gap-1.5 sm:grid-cols-2">
             {tools.map((t) => (
               <label key={t.name} className="flex items-center gap-2 rounded border border-ink-700 bg-ink-850 px-2.5 py-1.5 text-sm">
-                <input type="checkbox" className="accent-[#5b9cf2]" checked={allowed.includes(t.name)}
+                <input type="checkbox" className="accent-accent" checked={allowed.includes(t.name)}
                   onChange={(e) => set("allowed_tools", e.target.checked ? [...allowed, t.name].sort() : allowed.filter((x) => x !== t.name))} />
                 <Mono className="text-fg">{t.name}</Mono>
                 <span className="ml-auto text-[11px] text-fg-faint">{t.sensitivity.replace("_", " ")}</span>
@@ -242,7 +241,7 @@ function ImpactRunner() {
                 {event && event.policy.decision !== s.expected && <span className="block text-[11px] text-warn">Differs from default expectation ({DECISION_LABEL[s.expected]})</span>}
                 {event?.policy.matched_policy && <span className="block text-[11px] text-fg-faint">by {event.policy.matched_policy}</span>}
               </span>
-              {event ? <DecisionBadge decision={event.policy.decision} /> : <span className="text-xs text-[#ff6b70]">{error}</span>}
+              {event ? <DecisionBadge decision={event.policy.decision} /> : <span className="text-xs text-bad-fg">{error}</span>}
             </li>
           ))}
         </ul>
@@ -264,7 +263,7 @@ function Toggle({ checked, disabled, onChange, label }: { checked: boolean; disa
 function Check({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <label className="flex items-center gap-2 text-sm">
-      <input type="checkbox" className="accent-[#5b9cf2]" checked={checked} onChange={(e) => onChange(e.target.checked)} />{label}
+      <input type="checkbox" className="accent-accent" checked={checked} onChange={(e) => onChange(e.target.checked)} />{label}
     </label>
   );
 }
