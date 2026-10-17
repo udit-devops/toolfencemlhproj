@@ -108,17 +108,41 @@ blocked tools are never invoked.
 | GET | `/api/audit` | Events (`decision`, `severity`, `scenario`, `q`, `limit`, `offset`) |
 | GET | `/api/audit/{event_id}` | One event |
 | GET | `/api/policies` | Policies and change history |
+| POST | `/api/policies/reset` | Restore default policies (each change is logged) |
 | PATCH | `/api/policies/{policy_id}` | Update a policy (validated; locked policies cannot be disabled) |
 | GET | `/api/metrics` | Dashboard figures from persisted events |
 
 Interactive docs: http://localhost:8000/docs
+
+Requests that can reach the model (`POST /api/simulations/run` and `GET /api/health?check_model=true`) are rate limited:
+20 per client per minute and 200 per hour across all clients by default. Over the limit the API returns `429` with a
+`Retry-After` header. Set `RATE_LIMIT_PER_MINUTE` and `RATE_LIMIT_PER_HOUR` in `backend/.env`; `0` disables a limit.
+
+## Deploy
+
+The backend runs on Render and the frontend on Vercel. Vercel forwards `/api` to Render, so the browser only talks to
+one origin and the API key stays on Render.
+
+1. **Backend on Render.** In the Render dashboard choose **New > Blueprint**, select this repository, and Render reads
+   [render.yaml](render.yaml). Enter your `GEMINI_API_KEY` when prompted. When the deploy is live, open
+   `https://<your-service>.onrender.com/api/health` to confirm it responds.
+2. **Frontend on Vercel.** Import the repository with **Root Directory** set to `frontend`. The rewrite in
+   [frontend/vercel.json](frontend/vercel.json) sends `/api` requests to the Render service.
+
+Notes for the free Render plan:
+
+- The service sleeps after about 15 minutes without traffic. The first request after that takes up to a minute, so
+  open the health URL a few minutes before a demo.
+- The disk is not persistent. Audit events and policy changes are lost on every restart or redeploy.
 
 ## Limitations and security assumptions
 
 - Protection covers only tool calls routed through the gateway; a tool called directly is not protected.
 - Gemma's analysis is advisory and can itself be manipulated. That is why it can only tighten decisions.
 - Human approval is a request flag in this demo; production would need authenticated approvers.
-- The demo API has no authentication. Run it locally only.
+- The demo API has no authentication. A public deployment relies on the rate limits above to protect the model quota.
+  The per-client limit keys on the forwarded client address, which a determined caller can vary; the hourly limit is
+  the hard cap.
 - Permits are signed with a per-process key; restarting the backend invalidates outstanding permits.
 - MCP integration is not included. The official `mcp` Python SDK requires Python 3.10+.
 

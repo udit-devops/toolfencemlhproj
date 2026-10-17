@@ -132,3 +132,21 @@ def test_policy_reset_restores_defaults_and_enforcement(client):
 def test_openapi_documents_typed_responses(client):
     schemas = client.get("/openapi.json").json()["components"]["schemas"]
     assert {"Health", "ScenarioList", "ToolList", "AuditPage", "PolicyList", "Metrics"} <= set(schemas)
+
+
+def test_rate_limit_per_client_returns_429_with_retry_after(settings):
+    client = TestClient(create_app(dataclasses.replace(settings, rate_limit_per_minute=2), analyzer=permissive()))
+    run = {"scenario_id": "safe_read"}
+    assert [client.post("/api/simulations/run", json=run).status_code for _ in range(2)] == [200, 200]
+    r = client.post("/api/simulations/run", json=run)
+    assert r.status_code == 429 and r.json()["error"]["code"] == "rate_limited"
+    assert int(r.headers["retry-after"]) >= 1
+    assert client.get("/api/audit").json()["total"] == 2  # the limited request never reached the gateway
+
+
+def test_rate_limit_global_hourly_cap(settings):
+    capped = dataclasses.replace(settings, rate_limit_per_minute=0, rate_limit_per_hour=1)
+    client = TestClient(create_app(capped, analyzer=permissive()))
+    assert client.post("/api/simulations/run", json={"scenario_id": "safe_read"}).status_code == 200
+    assert client.post("/api/simulations/run", json={"scenario_id": "safe_read"}).status_code == 429
+    assert client.get("/api/health").status_code == 200  # plain health checks never spend model quota

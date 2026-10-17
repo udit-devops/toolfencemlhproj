@@ -1,0 +1,26 @@
+# Render Blueprint for the ToolFence backend. The frontend is deployed separately on Vercel.
+services:
+  - type: web
+    name: toolfence-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # Proxy headers give the rate limiter each visitor's real address instead of Render's proxy.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.3
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMMA_MODEL
+        value: gemma-4-26b-a4b-it
+      - key: GEMMA_THINKING_LEVEL
+        value: MINIMAL
+      - key: MODEL_TIMEOUT_SECONDS
+        value: "20"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "20"
+      - key: RATE_LIMIT_PER_HOUR
+        value: "200"

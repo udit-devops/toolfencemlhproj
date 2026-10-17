@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -14,6 +14,7 @@ from .analyzer import Analyzer, GemmaAnalyzer
 from .config import MAX_DOCUMENT_CHARS, MAX_REQUEST_BYTES, MAX_TASK_CHARS, Settings, load_settings
 from .gateway import Gateway, RequestError
 from .policy import PolicyConfigError, validate_policy_config
+from .ratelimit import RateLimiter
 from .scenarios import SCENARIOS
 from .schemas import (AuditEvent, AuditPage, Health, Limits, Metrics, ModelInfo, ModelProbe, PolicyList, PolicyRecord,
                       PolicyUpdate, ScenarioList, SimulationRequest, ToolList)
@@ -23,8 +24,10 @@ from .tools import build_registry
 logger = logging.getLogger("toolfence")
 
 
-def _error(status: int, code: str, message: str, details: Any = None) -> JSONResponse:
-    return JSONResponse(status_code=status, content={"error": {"code": code, "message": message, "details": details}})
+def _error(status: int, code: str, message: str, details: Any = None,
+           headers: Optional[Dict[str, str]] = None) -> JSONResponse:
+    return JSONResponse(status_code=status, content={"error": {"code": code, "message": message, "details": details}},
+                        headers=headers)
 
 
 def create_app(settings: Optional[Settings] = None, analyzer: Optional[Analyzer] = None) -> FastAPI:
@@ -36,6 +39,14 @@ def create_app(settings: Optional[Settings] = None, analyzer: Optional[Analyzer]
                                          thinking_level=settings.gemma_thinking_level)
     gateway = Gateway(registry, store, analyzer)
     probe_cache: Dict[str, ModelProbe] = {}
+    limiter = RateLimiter(settings.rate_limit_per_minute, settings.rate_limit_per_hour)
+
+    def enforce_rate_limit(request: Request) -> None:
+        """Applied to every request that can reach the model, so a public deployment cannot drain the quota."""
+        wait = limiter.check(request.client.host if request.client else "unknown")
+        if wait is not None:
+            raise HTTPException(status_code=429, detail=f"Rate limit reached. Try again in {wait}s.",
+                                headers={"Retry-After": str(wait)})
 
     app = FastAPI(title="ToolFence", version="1.0.0",
                   description="Runtime security gateway for AI agent tool calls.")
@@ -60,8 +71,8 @@ def create_app(settings: Optional[Settings] = None, analyzer: Optional[Analyzer]
     @app.exception_handler(StarletteHTTPException)
     async def http_error(_: Request, exc: StarletteHTTPException):
         code = {400: "bad_request", 403: "forbidden", 404: "not_found", 405: "method_not_allowed",
-                409: "conflict"}.get(exc.status_code, "error")
-        return _error(exc.status_code, code, str(exc.detail))
+                409: "conflict", 429: "rate_limited"}.get(exc.status_code, "error")
+        return _error(exc.status_code, code, str(exc.detail), headers=getattr(exc, "headers", None))
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_: Request, exc: RequestValidationError):
@@ -69,8 +80,9 @@ def create_app(settings: Optional[Settings] = None, analyzer: Optional[Analyzer]
         return _error(422, "validation_error", "Request failed validation.", details)
 
     @app.get("/api/health", response_model=Health, response_model_exclude_unset=True)
-    def health(check_model: bool = False) -> Health:
+    def health(request: Request, check_model: bool = False) -> Health:
         if check_model and isinstance(analyzer, GemmaAnalyzer):
+            enforce_rate_limit(request)
             probe_cache["last"] = ModelProbe(**analyzer.probe())
         model = ModelInfo(provider="Google Gen AI (hosted Gemma)", model_id=settings.gemma_model,
                           configured=settings.model_configured, timeout_seconds=settings.model_timeout_seconds,
@@ -88,7 +100,7 @@ def create_app(settings: Optional[Settings] = None, analyzer: Optional[Analyzer]
     def tools() -> ToolList:
         return ToolList(tools=[t.public_info() for t in registry.values()])
 
-    @app.post("/api/simulations/run", response_model=AuditEvent)
+    @app.post("/api/simulations/run", response_model=AuditEvent, dependencies=[Depends(enforce_rate_limit)])
     def run_simulation(body: SimulationRequest) -> AuditEvent:
         try:
             return gateway.run(body)

@@ -29,6 +29,8 @@ class Settings:
     database_path: Path
     cors_origins: List[str] = field(default_factory=list)
     gemma_thinking_level: Optional[str] = DEFAULT_THINKING_LEVEL
+    rate_limit_per_minute: int = 20
+    rate_limit_per_hour: int = 200
 
     @property
     def model_configured(self) -> bool:
@@ -47,4 +49,6 @@ def load_settings() -> Settings:
         database_path=db_path,
         cors_origins=[o.strip() for o in origins.split(",") if o.strip()],
         gemma_thinking_level=os.getenv("GEMMA_THINKING_LEVEL", DEFAULT_THINKING_LEVEL).strip().upper() or None,
+        rate_limit_per_minute=int(os.getenv("RATE_LIMIT_PER_MINUTE", "20")),
+        rate_limit_per_hour=int(os.getenv("RATE_LIMIT_PER_HOUR", "200")),
     )
