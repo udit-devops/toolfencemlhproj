@@ -1,7 +1,9 @@
-import { Activity, Ban, CheckCircle2, Inbox, RefreshCw, ShieldAlert, WifiOff } from "lucide-react";
+import { useState } from "react";
+import { Activity, Ban, CheckCircle2, Inbox, Pause, Play, RefreshCw, ShieldAlert, WifiOff } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "../api";
-import { Button, Card, DecisionBadge, PageHeader, EmptyState, ErrorState, Mono, SeverityBadge, Spinner, formatTime, humanize, useAsync } from "../components/ui";
+import type { AuditEvent, Metrics } from "../types";
+import { Button, Card, DecisionBadge, PageHeader, EmptyState, ErrorState, Mono, SeverityBadge, Skeleton, formatTime, humanize, useAsync, usePolling } from "../components/ui";
 
 // Reserved status colors (paired with labels/icons, never color alone).
 const C = { allow: "#2fbf5b", needs_approval: "#fab219", block: "#e5484d", grid: "#232a32", axis: "#76808c" };
@@ -9,19 +11,31 @@ const SEVERITY_COLORS: Record<string, string> = {
   unassessed: "#4a535e", none: "#6b7480", low: "#8e98a4", medium: "#fab219", high: "#ec835a", critical: "#e5484d",
 };
 const SEVERITIES = ["unassessed", "none", "low", "medium", "high", "critical"];
+const REFRESH_MS = 10_000;
 
 export default function Overview() {
   const metrics = useAsync(() => api.metrics());
   const recent = useAsync(() => api.audit({ limit: 8 }));
   const refresh = () => { metrics.reload(); recent.reload(); };
+  const [auto, setAuto] = useState(true);
+  const { hidden } = usePolling(refresh, REFRESH_MS, auto);
 
   return (
     <div className="space-y-6">
       <PageHeader title="Overview" subtitle="All figures are computed from persisted audit events in SQLite."
-        actions={<Button onClick={refresh}><RefreshCw size={14} /> Refresh</Button>} />
+        actions={<>
+          <span className="text-xs text-fg-faint" aria-live="polite">
+            {!auto ? "Auto-refresh off" : hidden ? "Paused while tab is hidden" : "Auto-refresh every 10 s"}
+            {metrics.updatedAt && <> · updated {metrics.updatedAt.toLocaleTimeString()}</>}
+          </span>
+          <Button onClick={() => setAuto(!auto)} aria-pressed={auto} title={auto ? "Pause auto-refresh" : "Resume auto-refresh"}>
+            {auto ? <Pause size={14} /> : <Play size={14} />} {auto ? "Pause" : "Resume"}
+          </Button>
+          <Button onClick={refresh} disabled={metrics.loading}><RefreshCw size={14} className={metrics.loading ? "animate-spin" : ""} /> Refresh</Button>
+        </>} />
 
       {metrics.error && <ErrorState message={metrics.error} onRetry={refresh} />}
-      {metrics.loading && !metrics.data && <Spinner />}
+      {metrics.loading && !metrics.data && !metrics.error && <OverviewSkeleton />}
 
       {metrics.data && (
         <>
@@ -43,6 +57,7 @@ export default function Overview() {
             </EmptyState></Card>
           ) : (
             <div className="grid gap-4 lg:grid-cols-3">
+              <Card title="Allowed vs blocked" className="lg:col-span-3"><DecisionSplit m={metrics.data} /></Card>
               <Card title="Decisions over time" className="lg:col-span-2"
                 actions={<span className="text-xs text-fg-faint">{metrics.data.timeline.bucket} buckets</span>}>
                 <Legend items={[["Allowed", C.allow], ["Needs approval", C.needs_approval], ["Blocked", C.block]]} />
@@ -101,7 +116,8 @@ export default function Overview() {
 
               <Card title="Recent audit events" className="lg:col-span-2"
                 actions={<a href="#/audit" className="text-xs font-medium text-accent hover:underline">Open audit explorer</a>}>
-                {recent.error && <ErrorState message={recent.error} />}
+                {recent.error && <ErrorState message={recent.error} onRetry={recent.reload} />}
+                {recent.loading && !recent.data && !recent.error && <div className="space-y-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-8" />)}</div>}
                 {recent.data && <RecentTable items={recent.data.items} />}
               </Card>
             </div>
@@ -112,7 +128,7 @@ export default function Overview() {
   );
 }
 
-function RecentTable({ items }: { items: import("../types").AuditEvent[] }) {
+function RecentTable({ items }: { items: AuditEvent[] }) {
   return (
     <div className="scroll-thin -mx-4 overflow-x-auto">
       <table className="w-full min-w-[560px] text-left text-sm">
@@ -170,6 +186,44 @@ function ChartTooltip({ active, payload, label }: any) {
           {p.name}: <span className="font-mono text-fg">{p.value}</span>
         </div>
       ))}
+    </div>
+  );
+}
+
+function DecisionSplit({ m }: { m: Metrics }) {
+  const parts = [
+    { key: "allow", label: "Allowed", n: m.allowed, color: C.allow },
+    { key: "needs_approval", label: "Needs approval", n: m.needs_approval, color: C.needs_approval },
+    { key: "block", label: "Blocked", n: m.blocked, color: C.block },
+  ];
+  const total = parts.reduce((a, p) => a + p.n, 0) || 1;
+  return (
+    <div>
+      <div className="flex h-3 gap-0.5 overflow-hidden rounded" role="img"
+        aria-label={parts.map((p) => `${p.label} ${p.n}`).join(", ")}>
+        {parts.filter((p) => p.n > 0).map((p) => (
+          <div key={p.key} style={{ width: `${(p.n / total) * 100}%`, background: p.color }} title={`${p.label}: ${p.n}`} />
+        ))}
+      </div>
+      <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        {parts.map((p) => (
+          <div key={p.key} className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-sm" style={{ background: p.color }} aria-hidden />
+            <dt className="text-fg-muted">{p.label}</dt>
+            <dd className="font-mono text-fg">{p.n} <span className="text-fg-faint">({Math.round((p.n / total) * 100)}%)</span></dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function OverviewSkeleton() {
+  return (
+    <div className="space-y-4" aria-busy aria-label="Loading metrics">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-[106px]" />)}</div>
+      <Skeleton className="h-20" />
+      <div className="grid gap-4 lg:grid-cols-3"><Skeleton className="h-72 lg:col-span-2" /><Skeleton className="h-72" /></div>
     </div>
   );
 }
