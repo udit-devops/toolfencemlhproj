@@ -1,0 +1,1 @@
+// EventDetail component.
