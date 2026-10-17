@@ -3,8 +3,7 @@ import { ChevronDown, ChevronRight, Copy, Inbox, RefreshCw, Search } from "lucid
 import { api } from "../api";
 import type { AuditEvent } from "../types";
 import { EventPanels } from "../components/EventPanels";
-import { Button, Card, DecisionBadge, EmptyState, ErrorState, Mono, SeverityBadge, SourceBadge, Spinner, cx, formatTime, humanize, useAsync } from "../components/ui";
-import { PageHeader } from "./Overview";
+import { Button, Card, DecisionBadge, EmptyState, ErrorState, Mono, SeverityBadge, SourceBadge, Spinner, cx, formatTime, humanize, useAsync, PageHeader } from "../components/ui";
 
 const PAGE = 25;
 

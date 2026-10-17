@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { History, Lock, Play, Plus, Save, ShieldCheck, X } from "lucide-react";
 import { api } from "../api";
 import type { AuditEvent, Policy, Scenario, ToolInfo } from "../types";
-import { Badge, Button, Card, DECISION_LABEL, DecisionBadge, ErrorState, Label, Mono, Spinner, cx, formatTime, useAsync } from "../components/ui";
-import { PageHeader } from "./Overview";
+import { Badge, Button, Card, DECISION_LABEL, DecisionBadge, ErrorState, Label, Mono, Spinner, cx, formatTime, useAsync, PageHeader } from "../components/ui";
 
 export default function Policies() {
   const data = useAsync(() => api.policies());

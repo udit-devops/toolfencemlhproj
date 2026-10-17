@@ -1,7 +1,7 @@
 import { Activity, Ban, CheckCircle2, Inbox, RefreshCw, ShieldAlert, WifiOff } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { api } from "../api";
-import { Button, Card, DecisionBadge, EmptyState, ErrorState, Mono, SeverityBadge, Spinner, formatTime, humanize, useAsync } from "../components/ui";
+import { Button, Card, DecisionBadge, PageHeader, EmptyState, ErrorState, Mono, SeverityBadge, Spinner, formatTime, humanize, useAsync } from "../components/ui";
 
 // Reserved status colors (paired with labels/icons, never color alone).
 const C = { allow: "#2fbf5b", needs_approval: "#fab219", block: "#e5484d", grid: "#232a32", axis: "#76808c" };
@@ -170,18 +170,6 @@ function ChartTooltip({ active, payload, label }: any) {
           {p.name}: <span className="font-mono text-fg">{p.value}</span>
         </div>
       ))}
-    </div>
-  );
-}
-
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: React.ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-fg-muted">{subtitle}</p>}
-      </div>
-      {actions}
     </div>
   );
 }

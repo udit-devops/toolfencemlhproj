@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle, Ban, CheckCircle2, CircleDashed, FlaskConical, Hand, Loader2, Radio, ShieldAlert, WifiOff,
 } from "lucide-react";
@@ -12,17 +12,59 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const load = useCallback(fn, deps);
+  const latest = useRef(0);
   const reload = useCallback(() => {
+    const id = ++latest.current; // ignore responses that arrive after a newer request
     setLoading(true);
     return load()
-      .then((d) => { setData(d); setError(null); })
-      .catch((e: Error) => setError(e.message))
-      .finally(() => setLoading(false));
+      .then((d) => { if (id === latest.current) { setData(d); setError(null); setUpdatedAt(new Date()); } })
+      .catch((e: Error) => { if (id === latest.current) setError(e.message); })
+      .finally(() => { if (id === latest.current) setLoading(false); });
   }, [load]);
   useEffect(() => { reload(); }, [reload]);
-  return { data, error, loading, reload, setData };
+  return { data, error, loading, reload, setData, updatedAt };
+}
+
+/** Calls `cb` every `ms` while enabled and the tab is visible; refreshes once when the tab returns. */
+export function usePolling(cb: () => unknown, ms: number, enabled = true) {
+  const [hidden, setHidden] = useState(() => document.hidden);
+  const saved = useRef(cb);
+  saved.current = cb;
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
+  useEffect(() => {
+    const onVisibility = () => {
+      setHidden(document.hidden);
+      if (!document.hidden && enabledRef.current) saved.current();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+  useEffect(() => {
+    if (!enabled || hidden) return;
+    const id = window.setInterval(() => saved.current(), ms);
+    return () => window.clearInterval(id);
+  }, [ms, enabled, hidden]);
+  return { paused: hidden || !enabled, hidden };
+}
+
+export function Skeleton({ className }: { className?: string }) {
+  return <div aria-hidden className={cx("animate-pulse rounded bg-ink-800", className)} />;
+}
+
+export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        {subtitle && <p className="mt-1 text-sm text-fg-muted">{subtitle}</p>}
+      </div>
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+    </div>
+  );
 }
 
 export function Card({ title, icon, actions, children, className }: {
@@ -99,12 +141,16 @@ export function Spinner({ label }: { label?: string }) {
   );
 }
 
-export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
+export function ErrorState({ message, onRetry, retryLabel = "Retry" }: { message: string; onRetry?: () => void; retryLabel?: string }) {
   return (
     <div className="flex items-start gap-3 rounded-md border border-bad/40 bg-bad/10 p-3 text-sm text-[#ffb3b5]" role="alert">
       <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-      <div className="flex-1">{message}</div>
-      {onRetry && <button onClick={onRetry} className="text-xs font-medium underline underline-offset-2">Retry</button>}
+      <div className="min-w-0 flex-1 break-words">{message}</div>
+      {onRetry && (
+        <button onClick={onRetry} className="shrink-0 rounded border border-bad/40 px-2 py-0.5 text-xs font-medium hover:bg-bad/20">
+          {retryLabel}
+        </button>
+      )}
     </div>
   );
 }

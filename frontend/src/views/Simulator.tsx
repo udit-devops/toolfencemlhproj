@@ -3,8 +3,7 @@ import { AlertTriangle, Crosshair, FlaskConical, Play, Radio, RotateCcw } from "
 import { api } from "../api";
 import type { AuditEvent, Health, Scenario } from "../types";
 import { EventPanels } from "../components/EventPanels";
-import { Badge, Button, Card, DECISION_LABEL, ErrorState, Label, Mono, Spinner, cx, useAsync } from "../components/ui";
-import { PageHeader } from "./Overview";
+import { Badge, Button, Card, DECISION_LABEL, ErrorState, Label, Mono, Spinner, cx, useAsync, PageHeader } from "../components/ui";
 
 export default function Simulator({ health }: { health: Health | null }) {
   const scenarios = useAsync(() => api.scenarios());

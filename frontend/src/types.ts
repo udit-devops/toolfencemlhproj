@@ -2,6 +2,10 @@
 
 export type Severity = "none" | "low" | "medium" | "high" | "critical";
 export type Decision = "allow" | "block" | "needs_approval";
+export type RiskCategory =
+  | "none" | "prompt_injection" | "data_exfiltration" | "unauthorized_destination"
+  | "privilege_escalation" | "destructive_action" | "social_engineering" | "other";
+export type Recommendation = "allow" | "block" | "review";
 export type CheckOutcome = "pass" | "fail" | "approval_required" | "not_applicable" | "skipped" | "disabled";
 
 export interface ToolCall {
@@ -23,10 +27,10 @@ export interface Scenario {
 }
 
 export interface ThreatAssessment {
-  risk_category: string;
+  risk_category: RiskCategory;
   severity: Severity;
   confidence: number;
-  recommendation: "allow" | "block" | "review";
+  recommendation: Recommendation;
   task_alignment: "aligned" | "misaligned" | "unclear";
   explanation: string;
   suspicious_excerpts: string[];
@@ -59,7 +63,7 @@ export interface AuditEvent {
   analysis: AnalysisResult;
   policy: { decision: Decision; matched_policy: string | null; reason: string; checks: PolicyCheck[] };
   execution: { status: "executed" | "not_executed" | "failed"; output: unknown; error: string | null };
-  model_vs_policy: { model_recommendation: string | null; policy_decision: Decision; agreement: boolean | null };
+  model_vs_policy: { model_recommendation: Recommendation | null; policy_decision: Decision; agreement: boolean | null };
 }
 
 export interface Policy {
@@ -86,6 +90,29 @@ export interface ToolInfo {
   description: string;
   sensitivity: "read_only" | "sensitive" | "destructive";
   destination_field: string | null;
+  arguments_schema: JsonSchema;
+}
+
+// Pydantic's model_json_schema() output (subset used by the UI).
+export interface JsonSchemaProperty {
+  type?: string;
+  enum?: unknown[];
+  default?: unknown;
+  pattern?: string;
+  maxLength?: number;
+  title?: string;
+}
+export interface JsonSchema {
+  type?: string;
+  properties?: Record<string, JsonSchemaProperty>;
+  required?: string[];
+}
+
+export interface AuditPage {
+  items: AuditEvent[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface Metrics {
