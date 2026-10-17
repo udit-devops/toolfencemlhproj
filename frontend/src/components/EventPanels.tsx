@@ -61,7 +61,7 @@ export function ThreatPanel({ event }: { event: AuditEvent }) {
 
 const OUTCOME: Record<CheckOutcome, { icon: JSX.Element; cls: string; label: string }> = {
   pass: { icon: <Check size={14} />, cls: "text-good", label: "Pass" },
-  fail: { icon: <X size={14} />, cls: "text-[#ff6b70]", label: "Fail" },
+  fail: { icon: <X size={14} />, cls: "text-bad-fg", label: "Fail" },
   approval_required: { icon: <Hand size={14} />, cls: "text-warn", label: "Approval" },
   not_applicable: { icon: <MinusCircle size={14} />, cls: "text-fg-faint", label: "N/A" },
   skipped: { icon: <CircleSlash size={14} />, cls: "text-fg-faint", label: "Skipped" },
@@ -153,12 +153,12 @@ export function ExecutionPanel({ event }: { event: AuditEvent }) {
   );
 }
 
-export function EventPanels({ event }: { event: AuditEvent }) {
+export function EventPanels({ event, stacked }: { event: AuditEvent; stacked?: boolean }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className={cx("grid gap-4", !stacked && "lg:grid-cols-2")}>
       <ThreatPanel event={event} />
       <EnforcementPanel event={event} />
-      <div className="xl:col-span-2"><ExecutionPanel event={event} /></div>
+      <div className={cx(!stacked && "lg:col-span-2")}><ExecutionPanel event={event} /></div>
     </div>
   );
 }

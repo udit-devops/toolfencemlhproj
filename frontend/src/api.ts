@@ -1,7 +1,7 @@
-import type { AuditEvent, Health, Metrics, Policy, PolicyChange, Scenario, ToolCall, ToolInfo } from "./types";
+import type { AuditEvent, AuditPage, Health, Metrics, Policy, PolicyChange, Scenario, ToolCall, ToolInfo } from "./types";
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public details?: unknown) {
+  constructor(public status: number, message: string, public code?: string, public details?: unknown) {
     super(message);
   }
 }
@@ -11,12 +11,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...init });
   } catch {
-    throw new ApiError(0, "Cannot reach the ToolFence backend. Is it running on port 8000?");
+    throw new ApiError(0, "Cannot reach the ToolFence backend. Is it running on port 8000?", "network_error");
   }
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     const err = body?.error;
-    throw new ApiError(res.status, err?.message ?? `Request failed (${res.status})`, err?.details);
+    const details = Array.isArray(err?.details)
+      ? err.details.map((d: { loc?: unknown[]; msg?: string } | string) =>
+          typeof d === "string" ? d : `${(d.loc ?? []).join(".")}: ${d.msg ?? ""}`).join("; ")
+      : typeof err?.details === "string" ? err.details : "";
+    const message = err?.message ?? `Request failed (${res.status})`;
+    throw new ApiError(res.status, details ? `${message} ${details}` : message, err?.code, err?.details);
   }
   return body as T;
 }
@@ -46,7 +51,7 @@ export const api = {
   audit: (q: AuditQuery) => {
     const params = new URLSearchParams();
     Object.entries(q).forEach(([k, v]) => v !== undefined && v !== "" && params.set(k, String(v)));
-    return request<{ items: AuditEvent[]; total: number }>(`/api/audit?${params}`);
+    return request<AuditPage>(`/api/audit?${params}`);
   },
   event: (id: string) => request<AuditEvent>(`/api/audit/${encodeURIComponent(id)}`),
   policies: () => request<{ policies: Policy[]; changes: PolicyChange[] }>("/api/policies"),
