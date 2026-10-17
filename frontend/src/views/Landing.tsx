@@ -239,7 +239,11 @@ export default function Landing({ health }: { health: Health | null }) {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-xs text-fg-faint sm:flex-row sm:px-6">
           <span className="flex items-center gap-2"><ShieldCheck size={14} className="text-accent-soft" aria-hidden />
             <span className="font-semibold uppercase tracking-[0.42em] text-fg-muted">Toolfence</span></span>
-          <span>Built at Hacktoberfest Hack Day Mumbai 2026 · MIT License · Synthetic data only</span>
+          <span className="text-center sm:text-right">
+            Built in a day at Hacktoberfest Hack Day Mumbai 2026, by{" "}
+            <a href="https://mlh.io" target="_blank" rel="noopener noreferrer" className="text-fg-muted underline-offset-2 hover:text-fg hover:underline">Major League Hacking</a>
+            {" "}· MIT License · Synthetic data only
+          </span>
         </div>
       </footer>
     </div>
