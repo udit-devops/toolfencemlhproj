@@ -14,6 +14,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(0, "Cannot reach the ToolFence backend. Is it running on port 8000?", "network_error");
   }
   const body = await res.json().catch(() => null);
+  if (!res.ok && body === null) {
+    // A non-JSON error (e.g. a static host's 404 page) means no ToolFence API is behind /api.
+    throw new ApiError(res.status, "The ToolFence backend is not connected to this deployment.", "backend_not_connected");
+  }
   if (!res.ok) {
     const err = body?.error;
     const details = Array.isArray(err?.details)

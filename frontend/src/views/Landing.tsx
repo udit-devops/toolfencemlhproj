@@ -33,17 +33,17 @@ export default function Landing({ health }: { health: Health | null }) {
   const m = metrics.data;
 
   return (
-    <div className="min-h-screen bg-ink-950 text-fg">
+    <div className="skeu-scope skeu-page min-h-screen text-fg">
       <a href="#landing-main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-ink-800 focus:px-3 focus:py-2">
         Skip to content
       </a>
 
       {/* Nav */}
-      <header className="sticky top-0 z-30 border-b border-ink-700/70 bg-ink-950/85 backdrop-blur" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <header className="skeu-faceplate sticky top-0 z-30 border-x-0 border-t-0" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6">
           <a href="#/home" className="flex items-center gap-2.5" aria-label="ToolFence home">
             <ShieldCheck size={18} className="text-accent-soft" aria-hidden />
-            <span className="text-[13px] font-semibold uppercase tracking-[0.42em]">Toolfence</span>
+            <span className="skeu-engrave text-[13px] font-semibold uppercase tracking-[0.42em]">Toolfence</span>
           </a>
           <nav className="hidden items-center gap-7 text-sm text-fg-muted md:flex" aria-label="Sections">
             <button onClick={() => scrollTo("problem")} className="hover:text-fg">Problem</button>
@@ -51,7 +51,7 @@ export default function Landing({ health }: { health: Health | null }) {
             <button onClick={() => scrollTo("layers")} className="hover:text-fg">Defenses</button>
             <button onClick={() => scrollTo("scenarios")} className="hover:text-fg">Attack demos</button>
           </nav>
-          <a href="#/overview" className="inline-flex items-center gap-2 rounded-lg bg-accent px-3.5 py-2 text-sm font-medium text-white hover:bg-accent-hover">
+          <a href="#/overview" className="inline-flex items-center gap-2 skeu-btn-primary rounded-lg px-3.5 py-2 text-sm font-medium">
             Open console <ArrowRight size={15} aria-hidden />
           </a>
         </div>
@@ -66,7 +66,7 @@ export default function Landing({ health }: { health: Health | null }) {
 
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-16 sm:px-6 md:pt-24 lg:grid-cols-[1.05fr_1fr]">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full border border-ink-600 bg-ink-900/80 px-3 py-1 text-xs text-fg-muted">
+              <span className="inline-flex items-center gap-2 skeu-well rounded-full px-3 py-1 text-xs text-fg-muted">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden /> Runtime security gateway for AI agents
               </span>
               <h1 className="mt-6 text-[40px] font-semibold leading-[1.05] tracking-tight sm:text-[54px]">
@@ -79,10 +79,10 @@ export default function Landing({ health }: { health: Health | null }) {
                 <span className="text-fg"> before they run</span>.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <a href="#/simulator?scenario=indirect_injection" className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-hover">
+                <a href="#/simulator?scenario=indirect_injection" className="inline-flex items-center gap-2 skeu-btn-primary rounded-lg px-5 py-3 text-sm font-medium">
                   Try an attack <ArrowRight size={15} aria-hidden />
                 </a>
-                <button onClick={() => scrollTo("how")} className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-5 py-3 text-sm font-medium hover:bg-ink-800">
+                <button onClick={() => scrollTo("how")} className="inline-flex items-center gap-2 skeu-btn rounded-lg px-5 py-3 text-sm font-medium">
                   See how it works
                 </button>
               </div>
@@ -93,7 +93,7 @@ export default function Landing({ health }: { health: Health | null }) {
         </section>
 
         {/* Principle */}
-        <section className="border-y border-ink-700/70 bg-ink-900/60">
+        <section className="skeu-faceplate border-x-0">
           <div className="mx-auto grid max-w-6xl gap-px px-4 sm:px-6 md:grid-cols-3">
             {[
               { icon: <Brain size={18} />, k: "Gemma", v: "analyzes the threat" },
@@ -101,7 +101,7 @@ export default function Landing({ health }: { health: Health | null }) {
               { icon: <ScrollText size={18} />, k: "The audit log", v: "records the evidence" },
             ].map((p) => (
               <div key={p.k} className="flex items-center gap-4 py-7 md:px-6 md:first:pl-0">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-ink-600 text-accent-soft">{p.icon}</span>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center skeu-well rounded-xl text-accent-soft">{p.icon}</span>
                 <p className="text-[17px]"><span className="font-semibold">{p.k}</span> <span className="text-fg-muted">{p.v}.</span></p>
               </div>
             ))}
@@ -126,9 +126,9 @@ export default function Landing({ health }: { health: Health | null }) {
           intro="ToolFence doesn't try to make the model un-foolable. It assumes the model can be fooled, and makes sure that doesn't matter for the actions you protect.">
           <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {STEPS.map((s, i) => (
-              <li key={s.title} className="relative rounded-card border border-ink-700 bg-ink-900 p-6">
+              <li key={s.title} className="relative skeu-panel rounded-card p-6">
                 <div className="flex items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-ink-600 text-accent-soft">{s.icon}</span>
+                  <span className="flex h-10 w-10 items-center justify-center skeu-well rounded-xl text-accent-soft">{s.icon}</span>
                   <span className="text-xs tabular text-fg-faint">Step {i + 1}</span>
                 </div>
                 <h3 className="mt-5 text-[16px] font-semibold">{s.title}</h3>
@@ -136,7 +136,7 @@ export default function Landing({ health }: { health: Health | null }) {
               </li>
             ))}
           </ol>
-          <div className="mt-6 flex flex-col gap-3 rounded-card border border-accent/30 bg-accent/[0.06] p-5 sm:flex-row sm:items-center sm:gap-5">
+          <div className="mt-6 flex flex-col gap-3 rounded-card skeu-tint skeu-tint-accent p-5 sm:flex-row sm:items-center sm:gap-5">
             <Brain size={20} className="shrink-0 text-accent-soft" aria-hidden />
             <p className="text-sm leading-relaxed text-fg-muted">
               <span className="font-medium text-fg">The model is advisory, never the authority.</span> Gemma's output is treated as untrusted input.
@@ -148,10 +148,10 @@ export default function Landing({ health }: { health: Health | null }) {
         {/* Defense layers */}
         <Section id="layers" eyebrow="Defense in depth" title="Eight layers, one decision"
           intro="Checks run in a fixed order on every request. The first failure blocks the action, and every result is recorded so you can see exactly why.">
-          <div className="grid gap-px overflow-hidden rounded-card border border-ink-700 bg-ink-700 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {LAYERS.map((l) => (
-              <div key={l.title} className="bg-ink-900 p-6">
-                <span className="text-accent-soft">{l.icon}</span>
+              <div key={l.title} className="skeu-panel rounded-card p-6">
+                <span className="skeu-well flex h-10 w-10 items-center justify-center rounded-xl text-accent-soft">{l.icon}</span>
                 <h3 className="mt-4 text-[15px] font-semibold">{l.title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-fg-muted">{l.body}</p>
               </div>
@@ -163,7 +163,7 @@ export default function Landing({ health }: { health: Health | null }) {
         <Section id="scenarios" eyebrow="See it work" title="Four attacks you can run right now"
           intro="Each demo goes through the real gateway. Nothing is simulated after the fact: blocked tools are never invoked.">
           {scenarios.error && (
-            <p className="rounded-card border border-ink-700 bg-ink-900 p-5 text-sm text-fg-muted">
+            <p className="skeu-panel rounded-card p-5 text-sm text-fg-muted">
               The scenario list comes from the backend, which isn't reachable right now ({scenarios.error}). Start it and reload this page.
             </p>
           )}
@@ -174,10 +174,10 @@ export default function Landing({ health }: { health: Health | null }) {
             <div className="grid gap-4 md:grid-cols-2">
               {scenarios.data.map((s) => (
                 <a key={s.id} href={`#/simulator?scenario=${s.id}`}
-                  className="group flex flex-col rounded-card border border-ink-700 bg-ink-900 p-6 transition-colors hover:border-ink-600 hover:bg-ink-850">
+                  className="group flex flex-col skeu-panel rounded-card p-6 transition-colors hover:border-ink-600 hover:bg-ink-850">
                   <div className="flex items-center justify-between gap-3">
                     <span className="flex items-center gap-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-ink-600 text-sm font-semibold tabular">{s.label}</span>
+                      <span className="flex h-8 w-8 items-center justify-center skeu-well rounded-lg text-sm font-semibold tabular">{s.label}</span>
                       <span className="text-[16px] font-semibold">{s.title}</span>
                     </span>
                     <Expected decision={s.expected} />
@@ -213,7 +213,7 @@ export default function Landing({ health }: { health: Health | null }) {
 
         {/* Stack */}
         <section className="mx-auto max-w-6xl px-4 pb-6 sm:px-6">
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 rounded-card border border-ink-700 bg-ink-900 px-6 py-5 text-sm text-fg-muted">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 skeu-panel rounded-card px-6 py-5 text-sm text-fg-muted">
             <span className="text-fg-faint">Built with</span>
             {["Google Gemma", "FastAPI", "Pydantic", "SQLite", "React", "TypeScript", "Tailwind CSS"].map((t) => <span key={t} className="font-medium">{t}</span>)}
           </div>
@@ -221,15 +221,15 @@ export default function Landing({ health }: { health: Health | null }) {
 
         {/* CTA */}
         <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-          <div className="relative overflow-hidden rounded-[20px] border border-ink-700 bg-ink-900 px-6 py-14 text-center sm:px-12">
+          <div className="relative overflow-hidden skeu-faceplate rounded-[20px] px-6 py-14 text-center sm:px-12">
             <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/2 h-56 w-[40rem] -translate-x-1/2 rounded-full bg-accent/25 blur-[100px]" />
             <h2 className="relative text-[30px] font-semibold tracking-tight sm:text-[38px]">Put a fence around your agent's tools.</h2>
             <p className="relative mx-auto mt-3 max-w-xl text-fg-muted">Run the attacks, change a policy, and watch the decision change. Every result is real and recorded.</p>
             <div className="relative mt-8 flex flex-wrap justify-center gap-3">
-              <a href="#/simulator" className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white hover:bg-accent-hover">
+              <a href="#/simulator" className="inline-flex items-center gap-2 skeu-btn-primary rounded-lg px-5 py-3 text-sm font-medium">
                 Open attack simulator <ArrowRight size={15} aria-hidden />
               </a>
-              <a href="#/overview" className="inline-flex items-center gap-2 rounded-lg border border-ink-600 px-5 py-3 text-sm font-medium hover:bg-ink-800">View dashboard</a>
+              <a href="#/overview" className="inline-flex items-center gap-2 skeu-btn rounded-lg px-5 py-3 text-sm font-medium">View dashboard</a>
             </div>
           </div>
         </section>
@@ -239,7 +239,11 @@ export default function Landing({ health }: { health: Health | null }) {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-8 text-xs text-fg-faint sm:flex-row sm:px-6">
           <span className="flex items-center gap-2"><ShieldCheck size={14} className="text-accent-soft" aria-hidden />
             <span className="font-semibold uppercase tracking-[0.42em] text-fg-muted">Toolfence</span></span>
-          <span>Built at Hacktoberfest Hack Day Mumbai 2026 · MIT License · Synthetic data only</span>
+          <span className="text-center sm:text-right">
+            Built in a day at Hacktoberfest Hack Day Mumbai 2026, by{" "}
+            <a href="https://mlh.io" target="_blank" rel="noopener noreferrer" className="text-fg-muted underline-offset-2 hover:text-fg hover:underline">Major League Hacking</a>
+            {" "}· MIT License · Synthetic data only
+          </span>
         </div>
       </footer>
     </div>
@@ -259,9 +263,9 @@ function Section({ id, eyebrow, title, intro, children }: { id: string; eyebrow:
 
 function ProblemCard({ n, icon, title, body }: { n: string; icon: ReactNode; title: string; body: string }) {
   return (
-    <div className="rounded-card border border-ink-700 bg-ink-900 p-6">
+    <div className="skeu-panel rounded-card p-6">
       <div className="flex items-center justify-between">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-ink-600 text-fg-muted">{icon}</span>
+        <span className="flex h-10 w-10 items-center justify-center skeu-well rounded-xl text-fg-muted">{icon}</span>
         <span className="text-xs tabular text-fg-faint">{n}</span>
       </div>
       <h3 className="mt-5 text-[16px] font-semibold">{title}</h3>
@@ -283,7 +287,7 @@ function Expected({ decision }: { decision: string }) {
 
 function ScopeList({ tone, title, items }: { tone: "good" | "bad"; title: string; items: string[] }) {
   return (
-    <div className="rounded-card border border-ink-700 bg-ink-900 p-6">
+    <div className="skeu-panel rounded-card p-6">
       <h3 className="text-[16px] font-semibold">{title}</h3>
       <ul className="mt-4 space-y-3">
         {items.map((it) => (
@@ -304,7 +308,7 @@ function LiveStrip({ health, m, loading }: { health: Health | null; m: { total_r
   if (loading && !m) return <Skeleton className="mt-10 h-14 max-w-md" />;
   if (!m || !health) return null;
   return (
-    <div className="mt-10 inline-flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-ink-700 bg-ink-900/80 px-4 py-3 text-sm">
+    <div className="mt-10 inline-flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl skeu-well px-4 py-3 text-sm">
       <span className="flex items-center gap-2 text-xs text-fg-faint"><span className="h-1.5 w-1.5 rounded-full bg-good" aria-hidden />Live from this gateway</span>
       {m.total_requests === 0 ? (
         <span className="text-fg-muted">No requests evaluated yet. Run a demo to start the audit log.</span>
@@ -323,10 +327,11 @@ function LiveStrip({ health, m, loading }: { health: Health | null; m: { total_r
 function HeroIllustration() {
   return (
     <figure className="relative" aria-label="Illustration: a hidden instruction in a document is analyzed and blocked">
-      <div className="rounded-[20px] border border-ink-700 bg-ink-900 p-5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] sm:p-6">
+      <div className="skeu-faceplate rounded-[20px] p-5 sm:p-7">
+        <span className="skeu-screw left-3 top-3" /><span className="skeu-screw right-3 top-3" /><span className="skeu-screw bottom-3 left-3" /><span className="skeu-screw bottom-3 right-3" />
         <div className="flex items-center justify-between text-xs text-fg-faint">
           <span>Illustration · one request</span>
-          <span className="flex gap-1.5" aria-hidden><span className="h-2 w-2 rounded-full bg-ink-600" /><span className="h-2 w-2 rounded-full bg-ink-600" /><span className="h-2 w-2 rounded-full bg-ink-600" /></span>
+          <span className="flex items-center gap-2" aria-hidden><span className="skeu-led" style={{ ["--led" as string]: "#3ddc6e" } as React.CSSProperties} /><span className="skeu-led" style={{ ["--led" as string]: "#ffc23d" } as React.CSSProperties} /><span className="skeu-led" style={{ ["--led" as string]: "#ff4d55" } as React.CSSProperties} /></span>
         </div>
 
         <Stage icon={<FileWarning size={15} />} label="Untrusted document" className="mt-4">
@@ -351,8 +356,8 @@ function HeroIllustration() {
             <li className="flex items-center gap-2 text-fg-muted"><Hand size={13} className="text-warn" aria-hidden />Would also need human approval</li>
           </ul>
         </Stage>
-        <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-bad/40 bg-bad/[0.08] px-4 py-3.5">
-          <span className="flex items-center gap-2.5 text-[15px] font-semibold text-bad-fg"><Ban size={18} aria-hidden /> BLOCKED</span>
+        <div className="skeu-lamp mt-4 flex items-center justify-between gap-3 rounded-xl px-4 py-3.5">
+          <span className="skeu-lamp-text flex items-center gap-2.5 font-mono text-[15px] font-bold tracking-[0.12em]"><Ban size={18} aria-hidden /> BLOCKED</span>
           <span className="text-xs text-fg-muted">Tool never executed · event recorded</span>
         </div>
       </div>
@@ -362,7 +367,7 @@ function HeroIllustration() {
 
 function Stage({ icon, label, children, className }: { icon: ReactNode; label: string; children: ReactNode; className?: string }) {
   return (
-    <div className={cx("rounded-xl border border-ink-700 bg-ink-850 p-4", className)}>
+    <div className={cx("rounded-xl skeu-well p-4", className)}>
       <div className="mb-2.5 flex items-center gap-2 text-xs font-medium text-fg-muted"><span className="text-fg-faint">{icon}</span>{label}</div>
       {children}
     </div>
