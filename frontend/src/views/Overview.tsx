@@ -69,9 +69,9 @@ export default function Overview() {
                         tick={{ fill: C.axis, fontSize: 11 }} axisLine={{ stroke: C.grid }} tickLine={false} minTickGap={24} />
                       <YAxis allowDecimals={false} tick={{ fill: C.axis, fontSize: 11 }} axisLine={false} tickLine={false} />
                       <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                      <Bar dataKey="allow" name="Allowed" stackId="d" fill={C.allow} stroke="#0f1216" strokeWidth={1} />
-                      <Bar dataKey="needs_approval" name="Needs approval" stackId="d" fill={C.needs_approval} stroke="#0f1216" strokeWidth={1} />
-                      <Bar dataKey="block" name="Blocked" stackId="d" fill={C.block} stroke="#0f1216" strokeWidth={1} radius={[3, 3, 0, 0]} />
+                      <Bar isAnimationActive={false} dataKey="allow" name="Allowed" stackId="d" fill={C.allow} stroke="#0f1216" strokeWidth={1} />
+                      <Bar isAnimationActive={false} dataKey="needs_approval" name="Needs approval" stackId="d" fill={C.needs_approval} stroke="#0f1216" strokeWidth={1} />
+                      <Bar isAnimationActive={false} dataKey="block" name="Blocked" stackId="d" fill={C.block} stroke="#0f1216" strokeWidth={1} radius={[3, 3, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -87,7 +87,7 @@ export default function Overview() {
                       <YAxis type="category" dataKey="severity" width={78} tick={{ fill: "#a3acb7", fontSize: 12 }} axisLine={false} tickLine={false}
                         tickFormatter={(s) => s[0].toUpperCase() + s.slice(1)} />
                       <Tooltip content={<ChartTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
-                      <Bar dataKey="count" name="Events" radius={[0, 3, 3, 0]} barSize={14}
+                      <Bar isAnimationActive={false} dataKey="count" name="Events" radius={[0, 3, 3, 0]} barSize={14}
                         label={{ position: "right", fill: "#a3acb7", fontSize: 11 }}>
                         {SEVERITIES.map((s) => <Cell key={s} fill={SEVERITY_COLORS[s]} />)}
                       </Bar>
@@ -156,7 +156,7 @@ function RecentTable({ items }: { items: AuditEvent[] }) {
 
 function Stat({ label, value, icon, hint }: { label: string; value: number; icon: React.ReactNode; hint?: string }) {
   return (
-    <div className="rounded-lg border border-ink-700 bg-ink-900 p-4">
+    <div className="min-w-0 rounded-lg border border-ink-700 bg-ink-900 p-4">
       <div className="flex items-center justify-between text-xs font-medium text-fg-muted">{label}{icon}</div>
       <div className="mt-2 font-mono text-3xl font-semibold tracking-tight text-fg">{value}</div>
       <div className="mt-1 h-4 text-xs text-fg-faint">{hint}</div>

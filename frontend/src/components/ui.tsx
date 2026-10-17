@@ -71,7 +71,7 @@ export function Card({ title, icon, actions, children, className }: {
   title?: ReactNode; icon?: ReactNode; actions?: ReactNode; children: ReactNode; className?: string;
 }) {
   return (
-    <section className={cx("rounded-lg border border-ink-700 bg-ink-900", className)}>
+    <section className={cx("min-w-0 rounded-lg border border-ink-700 bg-ink-900", className)}>
       {title && (
         <header className="flex items-center justify-between gap-3 border-b border-ink-700 px-4 py-3">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-fg">

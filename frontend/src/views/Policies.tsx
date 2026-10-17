@@ -53,12 +53,12 @@ export default function Policies() {
       )}
       {data.data && tools.data && data.data.policies.length > 0 && (
         <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             {data.data.policies.map((p, i) => (
               <PolicyCard key={p.id} index={i + 1} policy={p} tools={tools.data!} onPatch={(patch) => applyPatch(p.id, patch)} />
             ))}
           </div>
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <ImpactRunner />
             <Card title="Change history" icon={<History size={16} />}>
               {historyError && <div className="mb-3"><ErrorState message={historyError} onRetry={refreshHistory} /></div>}
