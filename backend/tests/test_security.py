@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.analyzer import GemmaAnalyzer
+from app.analyzer import MAX_OUTPUT_TOKENS, GemmaAnalyzer
 from app.policy import PolicyConfigError, validate_policy_config
 from app.schemas import AnalysisResult, PolicyDecision, SimulationRequest, ToolCall
 from app.tools import ExecutionPermit, GetCustomerCountArgs, PermitIssuer, ToolExecutor
@@ -177,6 +177,35 @@ def test_gemma_api_error_is_reported_and_key_redacted(make_gateway):
     result = gemma(fail).analyze(resolved(make_gateway()))
     assert result.status == "error" and not result.usable
     assert "test-key" not in result.error
+
+
+def test_gemma_deadline_exceeded_is_reported_as_timeout(make_gateway):
+    class DeadlineError(Exception):
+        code = 504
+
+    def fail():
+        raise DeadlineError("504 DEADLINE_EXCEEDED")
+    result = gemma(fail).analyze(resolved(make_gateway()))
+    assert result.status == "timeout" and not result.usable
+
+
+def test_gemma_empty_response_reports_finish_reason(make_gateway):
+    response = MagicMock(text=None, candidates=[MagicMock(finish_reason="MAX_TOKENS")])
+    result = gemma(lambda: response).analyze(resolved(make_gateway()))
+    assert result.status == "invalid_response" and not result.usable
+    assert "MAX_TOKENS" in result.error
+
+
+def test_gemma_request_sets_thinking_level_and_token_cap(make_gateway):
+    client = MagicMock()
+    client.models.generate_content.return_value = MagicMock(text="{}")
+    for level in ["MINIMAL", None]:
+        GemmaAnalyzer("test-key", "gemma-test", 1.0, client=client, thinking_level=level).analyze(
+            resolved(make_gateway()))
+    configs = [c.kwargs["config"] for c in client.models.generate_content.call_args_list]
+    assert configs[0].thinking_config.thinking_level == "MINIMAL"
+    assert configs[1].thinking_config is None
+    assert all(c.max_output_tokens == MAX_OUTPUT_TOKENS for c in configs)
 
 
 @pytest.mark.parametrize("text", [

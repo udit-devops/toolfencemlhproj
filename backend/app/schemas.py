@@ -178,3 +178,115 @@ class AuditEvent(BaseModel):
     policy: PolicyDecision
     execution: ExecutionResult
     model_vs_policy: ModelVsPolicy
+
+
+# --------------------------------------------------------------------------- API responses
+
+
+class ScenarioInfo(BaseModel):
+    id: str
+    label: str
+    title: str
+    summary: str
+    expected: Decision
+    task: str
+    document: str
+    tool_call: ToolCall
+    human_approval: bool
+    analysis: Literal["live", "fixture"]
+
+
+class ScenarioList(BaseModel):
+    scenarios: List[ScenarioInfo]
+
+
+class ToolInfo(BaseModel):
+    name: str
+    description: str
+    sensitivity: Literal["read_only", "sensitive", "destructive"]
+    destination_field: Optional[str]
+    arguments_schema: Dict[str, Any]
+
+
+class ToolList(BaseModel):
+    tools: List[ToolInfo]
+
+
+class ModelProbe(BaseModel):
+    ok: bool
+    latency_ms: Optional[int] = None
+    error: Optional[str] = None
+    reply_excerpt: Optional[str] = None
+
+
+class ModelInfo(BaseModel):
+    provider: str
+    model_id: str
+    configured: bool
+    timeout_seconds: float
+    thinking_level: Optional[str]
+    last_probe: Optional[ModelProbe] = None
+
+
+class Limits(BaseModel):
+    max_task_chars: int
+    max_document_chars: int
+
+
+class Health(BaseModel):
+    status: Literal["ok"]
+    database: bool
+    model: ModelInfo
+    limits: Limits
+
+
+class AuditPage(BaseModel):
+    items: List[AuditEvent]
+    total: int
+    limit: int
+    offset: int
+
+
+class PolicyState(BaseModel):
+    enabled: bool
+    config: Dict[str, Any]
+
+
+class PolicyChange(BaseModel):
+    id: int
+    policy_id: str
+    changed_at: str
+    before: PolicyState
+    after: PolicyState
+
+
+class PolicyList(BaseModel):
+    policies: List[PolicyRecord]
+    changes: List[PolicyChange]
+
+
+class TimelinePoint(BaseModel):
+    bucket_start: str
+    allow: int
+    block: int
+    needs_approval: int
+
+
+class Timeline(BaseModel):
+    bucket: Optional[Literal["5m", "1h", "1d"]]
+    points: List[TimelinePoint]
+
+
+class Metrics(BaseModel):
+    total_requests: int
+    allowed: int
+    blocked: int
+    needs_approval: int
+    executed: int
+    high_risk_incidents: int
+    model_failures: int
+    by_decision: Dict[str, int]
+    by_severity: Dict[str, int]
+    by_analysis_status: Dict[str, int]
+    by_matched_policy: Dict[str, int]
+    timeline: Timeline

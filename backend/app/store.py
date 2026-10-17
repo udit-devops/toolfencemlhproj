@@ -117,6 +117,14 @@ class Store:
                           json.dumps({"enabled": enabled, "config": config})))
         return self.get_policy(policy_id)
 
+    def reset_policies(self) -> List[PolicyRecord]:
+        """Restore every policy to its default; each real change is recorded in policy_changes."""
+        for p in DEFAULT_POLICIES:
+            current = self.get_policy(p["id"])
+            if (current.enabled, current.config) != (p["enabled"], p["config"]):
+                self.update_policy(p["id"], p["enabled"], p["config"])
+        return self.list_policies()
+
     def list_policy_changes(self, limit: int = 50) -> List[Dict[str, Any]]:
         with self._conn() as conn:
             rows = conn.execute("SELECT * FROM policy_changes ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
@@ -163,8 +171,9 @@ class Store:
                 where.append("scenario_id = ?")
                 params.append(scenario_id)
         if q:
-            where.append("(event_id LIKE ? OR tool_name LIKE ? OR payload LIKE ?)")
-            like = f"%{q}%"
+            # Escape LIKE wildcards so a search for "%" or "_" matches those characters literally.
+            like = "%" + q.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+            where.append("(event_id LIKE ? ESCAPE '!' OR tool_name LIKE ? ESCAPE '!' OR payload LIKE ? ESCAPE '!')")
             params += [like, like, like]
         clause = f"WHERE {' AND '.join(where)}" if where else ""
         with self._conn() as conn:

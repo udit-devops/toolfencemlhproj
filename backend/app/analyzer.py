@@ -12,9 +12,14 @@ import re
 import time
 from typing import Any, Optional, Protocol
 
+from google import genai
+from google.genai import types
 from pydantic import ValidationError
 
 from .schemas import AnalysisResult, ResolvedRequest, ThreatAssessment
+
+# Thinking tokens count toward this cap; 1024 left Gemma 4 with an empty answer when thinking was on.
+MAX_OUTPUT_TOKENS = 4096
 
 PROMPT_TEMPLATE = """You are the threat-analysis component of ToolFence, a security gateway for AI agents.
 An AI agent was given a USER TASK, read an UNTRUSTED DOCUMENT, and now proposes a TOOL CALL.
@@ -93,9 +98,11 @@ class FixtureAnalyzer:
 
 
 class GemmaAnalyzer:
-    def __init__(self, api_key: Optional[str], model: str, timeout_seconds: float, client: Any = None):
+    def __init__(self, api_key: Optional[str], model: str, timeout_seconds: float, client: Any = None,
+                 thinking_level: Optional[str] = None):
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self.thinking_level = thinking_level
         self._api_key = api_key
         self._client = client
         self._pool = concurrent.futures.ThreadPoolExecutor(max_workers=4, thread_name_prefix="gemma")
@@ -106,9 +113,6 @@ class GemmaAnalyzer:
 
     def _get_client(self) -> Any:
         if self._client is None:
-            from google import genai
-            from google.genai import types
-
             self._client = genai.Client(
                 api_key=self._api_key,
                 http_options=types.HttpOptions(timeout=int(self.timeout_seconds * 1000)),
@@ -120,15 +124,14 @@ class GemmaAnalyzer:
             message = message.replace(self._api_key, "[redacted]")
         return message[:500]
 
-    def _generate(self, prompt: str) -> str:
-        from google.genai import types
-
-        response = self._get_client().models.generate_content(
+    def _generate(self, prompt: str) -> Any:
+        thinking = types.ThinkingConfig(thinking_level=self.thinking_level) if self.thinking_level else None
+        return self._get_client().models.generate_content(
             model=self.model,
             contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.0, max_output_tokens=1024),
+            config=types.GenerateContentConfig(temperature=0.0, max_output_tokens=MAX_OUTPUT_TOKENS,
+                                               thinking_config=thinking),
         )
-        return response.text or ""
 
     def analyze(self, req: ResolvedRequest) -> AnalysisResult:
         base = {"source": "live_model", "model": self.model}
@@ -138,16 +141,18 @@ class GemmaAnalyzer:
         started = time.monotonic()
         try:
             future = self._pool.submit(self._generate, build_prompt(req))
-            text = future.result(timeout=self.timeout_seconds)
+            response = future.result(timeout=self.timeout_seconds)
         except concurrent.futures.TimeoutError:
             return AnalysisResult(status="timeout", latency_ms=_ms(started),
                                   error=f"Model did not respond within {self.timeout_seconds:g}s.", **base)
         except Exception as exc:
-            status = "timeout" if "timeout" in type(exc).__name__.lower() else "error"
-            return AnalysisResult(status=status, latency_ms=_ms(started),
+            return AnalysisResult(status="timeout" if _is_timeout(exc) else "error", latency_ms=_ms(started),
                                   error=self._redact(f"{type(exc).__name__}: {exc}"), **base)
         latency = _ms(started)
+        text = response.text or ""
         try:
+            if not text:
+                raise ValueError(f"empty response (finish reason: {_finish_reason(response)})")
             assessment = ThreatAssessment.model_validate(extract_json(text))
         except (ValueError, ValidationError) as exc:
             return AnalysisResult(status="invalid_response", latency_ms=latency, raw_response_excerpt=text[:2000],
@@ -163,7 +168,7 @@ class GemmaAnalyzer:
         started = time.monotonic()
         try:
             text = self._pool.submit(self._generate, "Reply with the single word: ready").result(
-                timeout=self.timeout_seconds)
+                timeout=self.timeout_seconds).text or ""
             return {"ok": True, "latency_ms": _ms(started), "reply_excerpt": text.strip()[:80]}
         except Exception as exc:
             return {"ok": False, "latency_ms": _ms(started), "error": self._redact(f"{type(exc).__name__}: {exc}")}
@@ -171,3 +176,14 @@ class GemmaAnalyzer:
 
 def _ms(started: float) -> int:
     return int((time.monotonic() - started) * 1000)
+
+
+def _is_timeout(exc: Exception) -> bool:
+    # The API reports its own deadline as HTTP 504 DEADLINE_EXCEEDED rather than a client timeout.
+    return ("timeout" in type(exc).__name__.lower() or getattr(exc, "code", None) == 504
+            or "DEADLINE_EXCEEDED" in str(exc))
+
+
+def _finish_reason(response: Any) -> str:
+    candidates = getattr(response, "candidates", None) or []
+    return str(getattr(candidates[0], "finish_reason", "unknown")) if candidates else "unknown"
