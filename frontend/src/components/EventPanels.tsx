@@ -153,12 +153,12 @@ export function ExecutionPanel({ event }: { event: AuditEvent }) {
   );
 }
 
-export function EventPanels({ event }: { event: AuditEvent }) {
+export function EventPanels({ event, stacked }: { event: AuditEvent; stacked?: boolean }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
+    <div className={cx("grid gap-4", !stacked && "lg:grid-cols-2")}>
       <ThreatPanel event={event} />
       <EnforcementPanel event={event} />
-      <div className="xl:col-span-2"><ExecutionPanel event={event} /></div>
+      <div className={cx(!stacked && "lg:col-span-2")}><ExecutionPanel event={event} /></div>
     </div>
   );
 }
