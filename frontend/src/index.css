@@ -3,8 +3,9 @@
 @tailwind utilities;
 
 :root { color-scheme: dark; }
-body { font-feature-settings: "cv11", "ss01"; }
-::selection { background: rgba(91, 156, 242, 0.35); }
-*:focus-visible { outline: 2px solid #5b9cf2; outline-offset: 2px; }
+body { font-feature-settings: "cv11", "ss01"; letter-spacing: -0.005em; }
+::selection { background: rgba(76, 110, 245, 0.35); }
+*:focus-visible { outline: 2px solid #6380f7; outline-offset: 2px; }
 .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
-.scroll-thin::-webkit-scrollbar-thumb { background: #2f3842; border-radius: 4px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: #3c3c42; border-radius: 4px; }
+.tabular { font-variant-numeric: tabular-nums; }
