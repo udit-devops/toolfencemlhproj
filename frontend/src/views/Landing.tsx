@@ -60,8 +60,6 @@ export default function Landing({ health }: { health: Health | null }) {
       <main id="landing-main">
         {/* Hero */}
         <section className="relative overflow-hidden">
-          <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.35]"
-            style={{ backgroundImage: "linear-gradient(#26262b 1px, transparent 1px), linear-gradient(90deg, #26262b 1px, transparent 1px)", backgroundSize: "56px 56px", maskImage: "radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 75%)", WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 0%, black 30%, transparent 75%)" }} />
           <div aria-hidden className="pointer-events-none absolute left-1/2 top-[-12rem] h-[28rem] w-[56rem] -translate-x-1/2 rounded-full bg-accent/20 blur-[120px]" />
 
           <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 pb-20 pt-16 sm:px-6 md:pt-24 lg:grid-cols-[1.05fr_1fr]">
