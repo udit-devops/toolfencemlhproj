@@ -1,29 +1,67 @@
 import { useEffect, useState } from "react";
-import { History, Lock, Play, Plus, Save, ShieldCheck, X } from "lucide-react";
+import { History, Inbox, Loader2, Lock, Play, Plus, Save, ShieldCheck, X } from "lucide-react";
 import { api } from "../api";
 import type { AuditEvent, Policy, Scenario, ToolInfo } from "../types";
-import { Badge, Button, Card, DECISION_LABEL, DecisionBadge, ErrorState, Label, Mono, Spinner, cx, formatTime, useAsync, PageHeader } from "../components/ui";
+import { Badge, Button, Card, DECISION_LABEL, DecisionBadge, EmptyState, ErrorState, Label, Mono, Skeleton, cx, formatTime, useAsync, PageHeader } from "../components/ui";
+
+type Patch = { enabled?: boolean; config?: Record<string, unknown> };
 
 export default function Policies() {
   const data = useAsync(() => api.policies());
   const tools = useAsync(() => api.tools());
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  const replacePolicy = (id: string, next: Policy) =>
+    data.setData((cur) => cur && { ...cur, policies: cur.policies.map((p) => (p.id === id ? next : p)) });
+
+  const refreshHistory = () =>
+    api.policies()
+      .then((r) => { data.setData((cur) => cur && { ...cur, changes: r.changes }); setHistoryError(null); })
+      .catch((e: Error) => setHistoryError(e.message));
+
+  /** Optimistic update: show the change at once, then confirm with the server or roll back. */
+  const applyPatch = async (id: string, patch: Patch): Promise<string | null> => {
+    const previous = data.data?.policies.find((p) => p.id === id);
+    if (!previous) return "Policy not loaded.";
+    replacePolicy(id, { ...previous, ...patch });
+    try {
+      replacePolicy(id, await api.updatePolicy(id, patch));
+      refreshHistory();
+      return null;
+    } catch (e) {
+      replacePolicy(id, previous);
+      return (e as Error).message;
+    }
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader title="Policies"
         subtitle="Stored and enforced by the backend. Changes are validated server-side and apply to the next request." />
       {data.error && <ErrorState message={data.error} onRetry={data.reload} />}
-      {(data.loading || tools.loading) && !data.data && <Spinner />}
-      {data.data && tools.data && (
+      {tools.error && !data.error && <ErrorState message={`Could not load tools: ${tools.error}`} onRetry={tools.reload} />}
+      {(data.loading || tools.loading) && !(data.data && tools.data) && !data.error && !tools.error && (
+        <div className="grid gap-4 xl:grid-cols-[1fr_380px]" aria-busy aria-label="Loading policies">
+          <div className="space-y-3">{Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="h-28" />)}</div>
+          <Skeleton className="h-64" />
+        </div>
+      )}
+      {data.data && data.data.policies.length === 0 && (
+        <Card><EmptyState icon={<Inbox size={28} />} title="No policies configured">
+          The backend seeds default policies on startup. Restart it, or check the database path in <Mono>backend/.env</Mono>.
+        </EmptyState></Card>
+      )}
+      {data.data && tools.data && data.data.policies.length > 0 && (
         <div className="grid gap-4 xl:grid-cols-[1fr_380px]">
           <div className="space-y-3">
             {data.data.policies.map((p, i) => (
-              <PolicyCard key={p.id} index={i + 1} policy={p} tools={tools.data!} onSaved={data.reload} />
+              <PolicyCard key={p.id} index={i + 1} policy={p} tools={tools.data!} onPatch={(patch) => applyPatch(p.id, patch)} />
             ))}
           </div>
           <div className="space-y-4">
             <ImpactRunner />
             <Card title="Change history" icon={<History size={16} />}>
+              {historyError && <div className="mb-3"><ErrorState message={historyError} onRetry={refreshHistory} /></div>}
               {data.data.changes.length === 0 ? <p className="text-sm text-fg-muted">No policy changes yet.</p> : (
                 <ul className="space-y-3 text-sm">
                   {data.data.changes.map((c) => (
@@ -53,45 +91,51 @@ function describeChange(before: { enabled: boolean; config: Record<string, unkno
   return parts.join("; ") || "no effective change";
 }
 
-function PolicyCard({ policy, tools, index, onSaved }: { policy: Policy; tools: ToolInfo[]; index: number; onSaved: () => void }) {
-  const [enabled, setEnabled] = useState(policy.enabled);
+function PolicyCard({ policy, tools, index, onPatch }: { policy: Policy; tools: ToolInfo[]; index: number; onPatch: (p: Patch) => Promise<string | null> }) {
   const [config, setConfig] = useState<Record<string, unknown>>(policy.config);
-  const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState<"toggle" | "save" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => { setEnabled(policy.enabled); setConfig(policy.config); }, [policy]);
+  const [failed, setFailed] = useState<{ kind: "toggle" | "save"; patch: Patch } | null>(null);
+  // Reset the draft only when the server confirms a change, so a rolled-back edit stays editable.
+  useEffect(() => { setConfig(policy.config); }, [policy.updated_at]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const dirty = enabled !== policy.enabled || JSON.stringify(config) !== JSON.stringify(policy.config);
-  const save = async () => {
-    setSaving(true); setError(null);
-    try {
-      await api.updatePolicy(policy.id, { ...(enabled !== policy.enabled && { enabled }), config });
-      onSaved();
-    } catch (e) { setError((e as Error).message); } finally { setSaving(false); }
+  const dirty = JSON.stringify(config) !== JSON.stringify(policy.config);
+  const run = async (kind: "toggle" | "save", patch: Patch) => {
+    setPending(kind); setError(null);
+    const err = await onPatch(patch);
+    if (err) {
+      setError(`${kind === "toggle" ? "Could not change status" : "Could not save"}: ${err} The previous value was restored.`);
+      setFailed({ kind, patch });
+    } else setFailed(null);
+    setPending(null);
   };
   const set = (k: string, v: unknown) => setConfig({ ...config, [k]: v });
 
   return (
-    <section className={cx("rounded-lg border bg-ink-900", enabled ? "border-ink-700" : "border-dashed border-ink-600 opacity-80")}>
-      <div className="flex items-start gap-4 p-4">
-        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded bg-ink-800 font-mono text-xs text-fg-muted">{index}</span>
+    <section className={cx("rounded-lg border bg-ink-900", policy.enabled ? "border-ink-700" : "border-dashed border-ink-600 opacity-80")}
+      aria-labelledby={`policy-${policy.id}`}>
+      <div className="flex items-start gap-3 p-4 sm:gap-4">
+        <span className="mt-0.5 hidden h-6 w-6 shrink-0 items-center justify-center rounded bg-ink-800 font-mono text-xs text-fg-muted sm:flex">{index}</span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-sm font-semibold">{policy.name}</h3>
-            <Mono className="text-fg-faint">{policy.id}</Mono>
+            <h3 id={`policy-${policy.id}`} className="text-sm font-semibold">{policy.name}</h3>
+            <Mono className="break-all text-fg-faint">{policy.id}</Mono>
             {policy.locked && <Badge icon={<Lock size={11} />} title="Core security control; cannot be disabled">Locked</Badge>}
-            {enabled ? <Badge tone="good">Enforced</Badge> : <Badge tone="warn">Disabled</Badge>}
+            {policy.enabled ? <Badge tone="good">Enforced</Badge> : <Badge tone="warn">Disabled</Badge>}
+            {pending && <span className="flex items-center gap-1 text-[11px] text-fg-faint" role="status"><Loader2 size={12} className="animate-spin" /> Saving…</span>}
           </div>
           <p className="mt-1 text-sm text-fg-muted">{policy.description}</p>
           <div className="mt-3"><ConfigEditor policy={policy} config={config} set={set} tools={tools} /></div>
-          {error && <div className="mt-3"><ErrorState message={error} /></div>}
+          {error && <div className="mt-3"><ErrorState message={error} onRetry={failed ? () => run(failed.kind, failed.patch) : undefined} /></div>}
           {dirty && (
             <div className="mt-3 flex gap-2">
-              <Button variant="primary" onClick={save} disabled={saving}><Save size={14} /> {saving ? "Saving…" : "Save"}</Button>
-              <Button variant="ghost" onClick={() => { setEnabled(policy.enabled); setConfig(policy.config); setError(null); }}>Discard</Button>
+              <Button variant="primary" onClick={() => run("save", { config })} disabled={pending !== null}><Save size={14} /> Save</Button>
+              <Button variant="ghost" onClick={() => { setConfig(policy.config); setError(null); setFailed(null); }}>Discard</Button>
             </div>
           )}
         </div>
-        <Toggle checked={enabled} disabled={policy.locked} onChange={setEnabled} label={`Enable ${policy.name}`} />
+        <Toggle checked={policy.enabled} disabled={policy.locked || pending !== null}
+          onChange={(v) => run("toggle", { enabled: v })} label={`Enable ${policy.name}`} />
       </div>
     </section>
   );
