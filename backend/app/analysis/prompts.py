@@ -1,1 +1,0 @@
-"""Threat analysis prompt templates."""

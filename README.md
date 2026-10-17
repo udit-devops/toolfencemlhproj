@@ -1,234 +1,127 @@
 # ToolFence
 
-# 🛡️ ToolFence
+**A runtime security gateway for AI agent tool calls.**
 
-### Runtime Security Gateway for AI Agents
+AI agents read untrusted documents and call tools. A malicious document can try to steer an agent into
+unauthorized actions, such as exporting customer data. ToolFence sits on the tool-execution path:
 
-**Analyze threats. Enforce permissions. Audit every action.**
+> **Gemma analyzes the threat. ToolFence enforces permissions. The audit log records the evidence.**
 
-ToolFence is an AI agent security gateway that uses Google's **Gemma** to analyze suspicious instructions and proposed tool calls, combined with a deterministic policy engine that prevents unauthorized actions from executing.
+ToolFence protects only the tool calls that go through the gateway. It does not claim to solve prompt
+injection in general.
 
-Built for **Hacktoberfest Hack Day Mumbai 2026**.
+## How it works
 
----
-
-## 🚨 The Problem
-
-AI agents can read documents, interact with tools, and perform actions on behalf of users. However, untrusted content may contain malicious instructions designed to manipulate an agent into attempting unauthorized actions, such as exporting sensitive data or sending information to unapproved destinations.
-
-Detecting suspicious instructions is not enough. Applications also need an enforcement layer that prevents unauthorized actions from executing.
-
-## 💡 Our Solution
-
-ToolFence introduces a security checkpoint between an AI agent and its protected tools.
-
-- 🧠 **Gemma-powered threat analysis:** Analyze untrusted content and proposed tool calls to identify suspicious instructions and potential threats.
-- 🛡️ **Deterministic policy enforcement:** Validate tool permissions, arguments, destinations, and approval requirements before execution.
-- 🚫 **Unauthorized action blocking:** Reject prohibited tool calls independently of the model's recommendation.
-- 📋 **Audit logging:** Record attempted actions, threat assessments, policy decisions, and execution results.
-- 📊 **Security dashboard:** Visualize requests, threats, enforcement decisions, and audit events.
-- 🔌 **MCP integration:** Planned extension for exposing protected tools to compatible AI clients.
-
-## ⚙️ How It Works
-
-1. An agent proposes an action using information that may include untrusted content.
-2. Gemma analyzes the context and returns a structured threat assessment.
-3. ToolFence validates the assessment and applies deterministic security policies.
-4. Authorized actions execute through protected mock tools; unauthorized actions are rejected before execution.
-5. Every decision is recorded in an audit log.
-
-**Core principle:** Gemma analyzes the threat. ToolFence enforces permissions.
-
-The policy engine—not the language model—is responsible for authorization.
-
-## 🎯 Demo Scenarios
-
-| Scenario | Expected outcome |
-|---|---|
-| Safe read operation | Authorized mock tool executes |
-| Indirect prompt injection | Unauthorized export is blocked |
-| Unauthorized destination | Policy rejects the action |
-| Model disagreement | Prohibited action remains blocked even when the model recommends allowing it |
-
-The scenarios use synthetic data and simulated operations. ToolFence protects only actions routed through its enforcement layer and does not claim to prevent every prompt-injection attack.
-
-## 🏗️ Architecture
-
-```text
-          Untrusted Content
-                  |
-                  v
-        +-------------------+
-        |  Gemma API        |
-        |  Threat Analysis  |
-        +-------------------+
-                  |
-                  v
-        +-------------------+
-        |  Policy Engine    |
-        |  Python + Pydantic|
-        +-------------------+
-                  |
-            +-----+-----+
-            |           |
-            v           v
-        ALLOW         BLOCK
-            |           |
-            v           v
-        Mock Tool    No Execution
-            |           |
-            +-----+-----+
-                  |
-                  v
-        +-------------------+
-        | SQLite Audit Log  |
-        +-------------------+
-                  |
-                  v
-        +-------------------+
-        | React Dashboard   |
-        +-------------------+
+```
+task + untrusted document + proposed tool call
+        │
+        ▼
+ 1. Gemma threat analysis  ──► structured JSON, validated with Pydantic (untrusted, advisory)
+        │
+        ▼
+ 2. Deterministic policy engine (in order)
+      deny unknown tools → allowlist → argument schema → approved destinations
+      → fail closed without analysis → model risk gate (can only tighten) → human approval
+        │
+        ├── block / needs approval ──► tool is never invoked
+        ▼
+ 3. Execution: an HMAC-signed, single-use permit is required to run a (synthetic) tool
+        │
+        ▼
+ 4. Full event persisted to SQLite ──► dashboard
 ```
 
-## 🧰 Tech Stack
+The model's `recommendation` is never used to grant access. If the model errors, times out or returns
+malformed output, sensitive actions **fail closed**. Read-only tools may proceed when policy allows it.
 
-**Frontend**
-- React
-- TypeScript
-- Vite
-- Tailwind CSS
-- Recharts
-- Lucide React
+## Demo scenarios
 
-**Backend**
-- Python
-- FastAPI
-- Pydantic
-- SQLite
+| | Scenario | Tool | Result |
+|---|---|---|---|
+| A | Safe read | `get_customer_count` | Allowed, returns 42 (synthetic) |
+| B | Indirect prompt injection | `export_customer_data` | Blocked before execution |
+| C | Unauthorized destination (lookalike domain) | `send_report` | Blocked by destination policy |
+| D | Model disagreement (deterministic fixture says "allow") | `delete_customer_records` | Blocked; policy overrides the model |
 
-**AI**
-- Google Gemma through the hosted API
-- Google Gen AI Python SDK
+All data and tools are synthetic: nothing is emailed, exported or deleted.
 
-## 🚀 Getting Started
+## Stack
 
-### Prerequisites
+- **Backend:** Python, FastAPI, Pydantic, SQLite, `google-genai` (hosted Gemma, default `gemma-4-26b-a4b-it`)
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Lucide, Recharts
 
-- Python 3.10 or later
-- Node.js and npm
-- A Google AI API key with access to a supported Gemma model
+## Setup: Windows PowerShell
 
-### 1. Clone the repository
+Requires Python 3.9+ and Node.js 18+.
 
-```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
-cd ToolFence
-```
-
-Replace the placeholder with your repository URL.
-
-### 2. Configure the backend
-
-Create and activate a virtual environment:
-
-**Windows PowerShell**
-
+**Backend** (terminal 1):
 ```powershell
-python -m venv .venv
+cd backend
+py -m venv .venv
 .\.venv\Scripts\Activate.ps1
+pip install -r requirements-dev.txt
+Copy-Item .env.example .env      # then edit .env and set GEMINI_API_KEY
+python scripts\check_gemma.py    # optional: verify the Gemma model ID works
+uvicorn app.main:app --reload --port 8000
 ```
+If activation is blocked, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once.
 
-Install backend dependencies:
-
-```powershell
-pip install -r backend/requirements.txt
-```
-
-Create a `.env` file in the backend directory using the provided `.env.example` as a template.
-
-Configure:
-
-```env
-GEMINI_API_KEY=your_api_key_here
-GEMMA_MODEL=gemma-4-26b-a4b-it
-```
-
-Use a model ID supported by your API account. Never commit your `.env` file or expose the API key in frontend code.
-
-### 3. Start the backend
-
-Use the actual FastAPI module path documented by the project. For example:
-
-```powershell
-python -m uvicorn app.main:app --reload
-```
-
-### 4. Start the frontend
-
-Open a second terminal:
-
+**Frontend** (terminal 2):
 ```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite.
+Open **http://localhost:5173**. The Vite dev server proxies `/api` to the backend, so the API key never
+reaches the browser.
 
-**Note:** The commands and directory paths above assume the repository follows this layout. Update them if the implementation differs.
+## Setup: macOS / Linux
 
-## 🧪 Testing
-
-Run the backend tests using the project's documented test configuration. For a typical pytest setup:
-
-```powershell
-python -m pytest
+```bash
+cd backend && python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt && cp .env.example .env   # set GEMINI_API_KEY
+uvicorn app.main:app --reload --port 8000
+# second terminal
+cd frontend && npm install && npm run dev
 ```
 
-Verify that:
+## Tests
 
-- Authorized read operations execute successfully.
-- Unknown tools and unauthorized destinations are blocked.
-- Model recommendations cannot override prohibited-tool policies.
-- Model failures cannot authorize protected actions.
-- Blocked operations never invoke their protected execution functions.
-- Audit events persist in SQLite.
+```bash
+cd backend && python -m pytest -q
+```
 
-## 🔐 Security Principles
+All model responses are mocked, so the tests never call a paid or rate-limited API. They cover the allowlist,
+unknown tools, destinations and lookalike domains, model-vs-policy disagreement, invalid arguments,
+model errors, timeouts and malformed output, audit persistence, policy changes, and proof (via spies) that
+blocked tools are never invoked.
 
-- Deny unknown tools by default.
-- Validate arguments before execution.
-- Keep API credentials on the backend.
-- Treat model output as untrusted input.
-- Enforce permissions independently of model-generated recommendations.
-- Use synthetic data for demonstrations.
-- Record enforcement decisions for inspection.
+## API
 
-## 🗺️ Roadmap
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/health` | Status; `?check_model=true` runs a live model probe |
+| GET | `/api/scenarios` | Demo scenarios |
+| GET | `/api/tools` | Registered tools and schemas |
+| POST | `/api/simulations/run` | Run a request through the gateway |
+| GET | `/api/audit` | Events (`decision`, `severity`, `scenario`, `q`, `limit`, `offset`) |
+| GET | `/api/audit/{event_id}` | One event |
+| GET | `/api/policies` | Policies and change history |
+| PATCH | `/api/policies/{policy_id}` | Update a policy (validated; locked policies cannot be disabled) |
+| GET | `/api/metrics` | Dashboard figures from persisted events |
 
-- [x] Hosted Gemma API connectivity tested
-- [ ] Complete runtime policy engine
-- [ ] Interactive security dashboard
-- [ ] Live attack simulation
-- [ ] Persistent audit explorer
-- [ ] Automated security tests
-- [ ] Public repository and documentation
-- [ ] MCP integration
+Interactive docs: http://localhost:8000/docs
 
-Roadmap items describe intended work and should be updated as features are implemented and tested.
+## Limitations and security assumptions
 
-## 🌍 Open Source
+- Protection covers only tool calls routed through the gateway; a tool called directly is not protected.
+- Gemma's analysis is advisory and can itself be manipulated. That is why it can only tighten decisions.
+- Human approval is a request flag in this demo; production would need authenticated approvers.
+- The demo API has no authentication. Run it locally only.
+- Permits are signed with a per-process key; restarting the backend invalidates outstanding permits.
+- MCP integration is not included. The official `mcp` Python SDK requires Python 3.10+.
 
-ToolFence is intended to be an open-source project. The repository should include an explicit open-source license before distribution.
+## License
 
-Contributions, feedback, and security-focused improvements are welcome.
-
-## 👥 Built By
-
-**Udit and Anup**
-
-Built at **Hacktoberfest Hack Day Mumbai 2026**.
-
----
-
-*ToolFence demonstrates how model-based threat analysis can work alongside deterministic security controls. It is a prototype, not a guarantee of complete AI-agent security.*
+MIT. See [LICENSE](LICENSE).

@@ -1,26 +1,31 @@
 # Secrets
 .env
+.env.*
 *.env
 !.env.example
 
 # Python
-__pycache__/
-*.py[cod]
 .venv/
 venv/
+__pycache__/
+*.py[cod]
 .pytest_cache/
 
-# Database
+# SQLite data (audit logs, policies)
 *.db
 *.sqlite
 *.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 
-# Node
+# Node / build
 node_modules/
 dist/
+*.tsbuildinfo
 
-# Editor / OS
-.vscode/
-.idea/
+# OS / editor
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/

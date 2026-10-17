@@ -1,1 +1,0 @@
-// ThreatAnalysisPanel component.

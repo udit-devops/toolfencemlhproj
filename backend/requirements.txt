@@ -1,8 +1,5 @@
-fastapi
-uvicorn[standard]
-pydantic
-pydantic-settings
-google-genai
-python-dotenv
-pytest
-httpx
+fastapi==0.128.8
+uvicorn[standard]==0.39.0
+pydantic==2.13.5
+google-genai==1.47.0
+python-dotenv==1.2.1
