@@ -62,7 +62,10 @@ export default function Simulator({ health }: { health: Health | null }) {
   };
 
   useEffect(() => {
-    if (scenarios.data && !selected) load(scenarios.data[0]);
+    if (!scenarios.data || selected) return;
+    // Deep link from the landing page: #/simulator?scenario=<id>
+    const wanted = new URLSearchParams(window.location.hash.split("?")[1] ?? "").get("scenario");
+    load(scenarios.data.find((s) => s.id === wanted) ?? scenarios.data[0]);
   }, [scenarios.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = async () => {

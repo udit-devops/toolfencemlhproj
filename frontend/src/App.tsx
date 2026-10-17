@@ -9,6 +9,7 @@ const Overview = lazy(() => import("./views/Overview"));
 const Simulator = lazy(() => import("./views/Simulator"));
 const Audit = lazy(() => import("./views/Audit"));
 const Policies = lazy(() => import("./views/Policies"));
+const Landing = lazy(() => import("./views/Landing"));
 
 const VIEWS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -16,13 +17,14 @@ const VIEWS = [
   { id: "audit", label: "Audit explorer", icon: ScrollText },
   { id: "policies", label: "Policies", icon: SlidersHorizontal },
 ] as const;
-type ViewId = (typeof VIEWS)[number]["id"];
+type ViewId = (typeof VIEWS)[number]["id"] | "home";
 
 const HEALTH_POLL_MS = 30_000;
 
 function currentView(): ViewId {
-  const h = window.location.hash.replace("#/", "").split("?")[0];
-  return (VIEWS.find((v) => v.id === h)?.id ?? "overview") as ViewId;
+  const h = window.location.hash.replace(/^#\/?/, "").split("?")[0];
+  if (h === "" || h === "home") return "home";
+  return (VIEWS.find((v) => v.id === h)?.id ?? "home") as ViewId;
 }
 
 export default function App() {
@@ -43,6 +45,12 @@ export default function App() {
   useEffect(() => { refreshHealth(); }, [refreshHealth]);
   usePolling(() => refreshHealth(), HEALTH_POLL_MS);
 
+  useEffect(() => { window.scrollTo(0, 0); }, [view]);
+
+  if (view === "home") {
+    return <Suspense fallback={<div className="min-h-screen bg-ink-950" />}><Landing health={health} /></Suspense>;
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-ink-950 md:flex-row md:gap-0">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-ink-800 focus:px-3 focus:py-2">
@@ -51,7 +59,7 @@ export default function App() {
       <aside className="shrink-0 p-3 md:sticky md:top-0 md:h-screen md:w-64 md:p-4 md:pr-0">
         <div className="flex h-full flex-col rounded-card border border-ink-700 bg-ink-900">
           <div className="flex items-center justify-between px-5 pb-3 pt-5 md:pb-6">
-            <a href="#/overview" className="flex items-center gap-2.5" aria-label="ToolFence home">
+            <a href="#/home" className="flex items-center gap-2.5" aria-label="ToolFence home">
               <ShieldCheck size={18} className="text-accent-soft" aria-hidden />
               <span className="text-[13px] font-semibold uppercase tracking-[0.42em] text-fg">Toolfence</span>
             </a>
